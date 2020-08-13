@@ -26,7 +26,6 @@ namespace ArmaforcesMissionBot
         private Timer               _timer;
         private int                 _statusCounter;
         private static Program _instance;
-        private static bool _botStarted;
 
         public static SignupsData GetMissions() => _instance._services.GetService<SignupsData>();
         public static MissionsArchiveData GetArchiveMissions() => _instance._services.GetService<MissionsArchiveData>();
@@ -162,8 +161,6 @@ namespace ArmaforcesMissionBot
         }
 
         private async Task WelcomeAsync(SocketGuild guild) {
-            if (_botStarted) return;
-            _botStarted = true;
             var signupsChannel = guild.GetChannel(_config.CreateMissionChannel) as SocketTextChannel;
             signupsChannel?.SendMessageAsync("Bot stoi! 🍆");
         }
