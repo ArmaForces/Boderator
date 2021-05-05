@@ -3,11 +3,9 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using ArmaforcesMissionBot.Features.Signups.Missions;
 using ArmaforcesMissionBot.Helpers;
 
 namespace ArmaforcesMissionBot.Handlers
@@ -47,7 +45,7 @@ namespace ArmaforcesMissionBot.Handlers
                 await mission.Access.WaitAsync(-1);
                 try
                 {
-                    if(mission.Editing == ArmaforcesMissionBotSharedClasses.Mission.EditEnum.NotEditing && mission.CloseTime < e.SignalTime)
+                    if(mission.Editing == Mission.EditEnum.NotEditing && mission.CloseTime < e.SignalTime)
                     {
                         var archive = _client.GetChannel(_config.SignupsArchive) as ITextChannel;
                         var archiveEmbed = new EmbedBuilder()

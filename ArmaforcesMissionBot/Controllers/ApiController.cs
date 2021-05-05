@@ -2,8 +2,8 @@
 using System.Linq;
 using System.Threading.Tasks;
 using ArmaforcesMissionBot.DataClasses;
+using ArmaforcesMissionBot.Features.Signups.Missions;
 using ArmaforcesMissionBot.Helpers;
-using ArmaforcesMissionBotSharedClasses;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.Http;
@@ -73,10 +73,11 @@ namespace ArmaforcesMissionBot.Controllers
 
             JArray missionArray = new JArray();
             var openMissionsEnumerable = _signupsData.Missions
-                .Where(x => x.Editing == ArmaforcesMissionBotSharedClasses.Mission.EditEnum.NotEditing)
+                .Where(x => x.Editing == Features.Signups.Missions.Mission.EditEnum.NotEditing)
                 .Where(x => x.Date >= fromDateTime)
                 .Where(x => x.Date <= toDateTime)
                 .Reverse();
+
             foreach (var mission in openMissionsEnumerable)
             {
                 var objMission = new JObject();
@@ -89,8 +90,8 @@ namespace ArmaforcesMissionBot.Controllers
                 objMission.Add("modlistName", mission.ModlistName);
                 objMission.Add("modlistUrl", mission.ModlistUrl);
                 objMission.Add("id", mission.SignupChannel);
-                objMission.Add("freeSlots", Helpers.MiscHelper.CountFreeSlots(mission));
-                objMission.Add("allSlots", Helpers.MiscHelper.CountAllSlots(mission));
+                objMission.Add("freeSlots", MiscHelper.CountFreeSlots(mission));
+                objMission.Add("allSlots", MiscHelper.CountAllSlots(mission));
                 objMission.Add("state", "Open");
 
                 missionArray.Add(objMission);
@@ -180,7 +181,7 @@ namespace ArmaforcesMissionBot.Controllers
                         {
                             var team = mission.Teams.Single(x => x.TeamMsg == teamID);
 
-                            if (team.Slots.Any(x => x.Emoji == slotID && x.Count > x.Signed.Count()))
+                            if (team.Slots.Any(x => x.Emoji.Name == slotID && x.Count > x.Signed.Count()))
                             {
                                 var channel = _client.GetGuild(_config.AFGuild).GetTextChannel(missionID);
                                 var teamMsg = await channel.GetMessageAsync(teamID) as IUserMessage;
@@ -189,7 +190,7 @@ namespace ArmaforcesMissionBot.Controllers
 
                                 if (!mission.SignedUsers.Contains(userID))
                                 {
-                                    var slot = team.Slots.Single(x => x.Emoji == slotID);
+                                    var slot = team.Slots.Single(x => x.Emoji.Name == slotID);
                                     slot.Signed.Add(userID);
                                     mission.SignedUsers.Add(userID);
 
@@ -259,7 +260,7 @@ namespace ArmaforcesMissionBot.Controllers
                         {
                             var team = mission.Teams.Single(x => x.TeamMsg == teamID);
 
-                            if (team.Slots.Any(x => x.Emoji == slotID))
+                            if (team.Slots.Any(x => x.Emoji.Name == slotID))
                             {
                                 var channel = _client.GetGuild(_config.AFGuild).GetTextChannel(missionID);
                                 var teamMsg = await channel.GetMessageAsync(teamID) as IUserMessage;
@@ -268,7 +269,7 @@ namespace ArmaforcesMissionBot.Controllers
 
                                 if (mission.SignedUsers.Contains(userID))
                                 {
-                                    var slot = team.Slots.Single(x => x.Emoji == slotID);
+                                    var slot = team.Slots.Single(x => x.Emoji.Name == slotID);
                                     slot.Signed.Remove(userID);
                                     mission.SignedUsers.Remove(userID);
 
@@ -347,10 +348,10 @@ namespace ArmaforcesMissionBot.Controllers
         {
             Console.WriteLine(JsonConvert.SerializeObject(mission));
 
-            mission.Editing = ArmaforcesMissionBotSharedClasses.Mission.EditEnum.New;
+            mission.Editing = Features.Signups.Missions.Mission.EditEnum.New;
             _signupsData.Missions.Add(mission);
 
-            if (Helpers.SignupHelper.CheckMissionComplete(mission))
+            if (SignupHelper.CheckMissionComplete(mission))
             {
                 var guild = _client.GetGuild(_config.AFGuild);
 

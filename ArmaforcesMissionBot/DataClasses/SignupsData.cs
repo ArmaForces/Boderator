@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
-using System.Text;
 using System.Threading;
-using ArmaforcesMissionBotSharedClasses;
+using ArmaforcesMissionBot.Features.Signups.Missions;
 
 namespace ArmaforcesMissionBot.DataClasses
 {

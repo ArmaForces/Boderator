@@ -1,13 +1,6 @@
-using ArmaforcesMissionBot.Attributes;
-using ArmaforcesMissionBot.DataClasses;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -16,11 +9,13 @@ using ArmaforcesMissionBot.DataClasses;
 using ArmaforcesMissionBot.Exceptions;
 using ArmaforcesMissionBot.Extensions;
 using ArmaforcesMissionBot.Features;
-using ArmaforcesMissionBot.Features.Modsets;
-using ArmaforcesMissionBot.Features.Modsets.Constants;
+using ArmaforcesMissionBot.Features.Emojis.Constants;
+using ArmaforcesMissionBot.Features.Signups;
 using ArmaforcesMissionBot.Features.Signups.Importer;
+using ArmaforcesMissionBot.Features.Signups.Missions;
+using ArmaforcesMissionBot.Features.Signups.Missions.Slots;
+using ArmaforcesMissionBot.Features.Signups.Missions.Slots.Extensions;
 using ArmaforcesMissionBot.Helpers;
-using ArmaforcesMissionBotSharedClasses;
 using CSharpFunctionalExtensions;
 using Discord;
 using Discord.Commands;
@@ -37,10 +32,11 @@ namespace ArmaforcesMissionBot.Modules
         public Config _config { get; set; }
         public OpenedDialogs _dialogs { get; set; }
         public CommandService _commands { get; set; }
-        public IModsetProvider ModsetProvider { get; set; }
         public SignupsData SignupsData { get; set; }
+        public ISlotFactory SlotFactory { get; set; }
         public SignupHelper SignupHelper { get; set; }
         public MiscHelper _miscHelper { get; set; }
+        public ISignupsLogic SignupsLogic { get; set; }
 
         [Command("importuj-zapisy")]
         [Summary("Importuje zapisy z załączonego pliku *.txt. lub z wiadomości (preferując plik txt jeżeli obie rzeczy są). " +
@@ -48,7 +44,7 @@ namespace ArmaforcesMissionBot.Modules
                  "a następnie wywołuje komendy w kolejności. " +
                  "Ignoruje linie zaczynające się od '#' oraz '//' umożliwiając komentarze.")]
         [ContextDMOrChannel]
-        public async Task ImportSignups([Remainder]string missionContent = null) {
+        public async Task ImportSignups([Remainder] string missionContent = null) {
             if (_client.GetGuild(_config.AFGuild)
                 .GetUser(Context.User.Id)
                 .Roles.All(x => x.Id != _config.MissionMakerRole))
@@ -82,125 +78,66 @@ namespace ArmaforcesMissionBot.Modules
         [Command("zrob-zapisy")]
         [Summary("Tworzy nową misję, jako parametr przyjmuje nazwę misji.")]
         [ContextDMOrChannel]
-        public async Task StartSignups([Remainder]string title)
+        public async Task StartSignups([Remainder] string title)
         {
-            var signups = _map.GetService<SignupsData>();
-
-            if (SignupsData.GetCurrentlyEditedMission(Context.User.Id) != null)
-                await ReplyAsync("O ty luju, najpierw dokończ definiowanie poprzednich zapisów!");
-            else
-            {
-                if (_client.GetGuild(_config.AFGuild).GetUser(Context.User.Id).Roles.Any(x => x.Id == _config.MissionMakerRole))
-                {
-                    var mission = new Mission();
-
-                    mission.Title = title;
-                    mission.Owner = Context.User.Id;
-                    mission.Date = DateTime.Now;
-                    mission.Editing = Mission.EditEnum.New;
-
-                    SignupsData.Missions.Add(mission);
-
-                    await ReplyAsync("Zdefiniuj reszte misji.");
-                }
-                else
-                    await ReplyAsync("Luju ty, nie jestes uprawniony do tworzenia misji!");
-            }
+            await SignupsLogic.StartSignupsCreation(Context.User, title).Match(
+                onSuccess: message => ReplyAsync(message),
+                onFailure: ReplyWithError);
         }
 
         [Command("opis")]
         [Summary("Definicja opisu misji, dodając obrazek dodajesz obrazek do wołania misji.")]
         [ContextDMOrChannel]
-        public async Task Description([Remainder]string description)
+        public async Task Description([Remainder] string description)
         {
-            var mission = SignupsData.GetCurrentlyEditedMission(Context.User.Id);
-
-            if (mission != null)
-            {
-                mission.Description = description;
-
-                if (Context.Message.Attachments.Count > 0)
-                {
-                    mission.Attachment = Context.Message.Attachments.ElementAt(0).Url;
-                }
-
-                await ReplyAsync("Teraz podaj nazwe modlisty.");
-            }
-            else
-            {
-                await ReplyAsync("Najpierw zdefiniuj nazwę misji cymbale.");
-            }
+            await SignupsLogic.SetDescription(
+                    Context.User,
+                    description,
+                    Context.Message.Attachments.FirstOrDefault())
+                .Match(
+                    onSuccess: message => ReplyAsync(message),
+                    onFailure: ReplyWithError);
         }
 
         [Command("modlista")]
         [Summary("Nazwa modlisty lub link do niej.")]
         [ContextDMOrChannel]
-        public async Task Modlist([Remainder]string modsetNameOrUrl)
+        public async Task Modlist([Remainder] string modsetNameOrUrl)
         {
-            var mission = SignupsData.GetCurrentlyEditedMission(Context.User.Id);
-
-            if (mission != null)
-            {
-                var modsetName = ModsetProvider.GetModsetNameFromUrl(modsetNameOrUrl);
-                await ModsetProvider.GetModsetDownloadUrl(modsetName).Match(
-                        onSuccess: url =>
-                        {
-                            mission.ModlistUrl = mission.Modlist = url.Replace(" ", "%20");
-                            mission.ModlistName = modsetName;
-                            return ReplyAsync($"Modset {modsetName} was found under {mission.ModlistUrl}.");
-                        },
-                        onFailure: error => ReplyAsync(error));
-            }
-            else
-            {
-                await ReplyAsync("Najpierw zdefiniuj nazwę misji cymbale.");
-            }
+            await SignupsLogic.SetModset(Context.User, modsetNameOrUrl).Match(
+                onSuccess: message => ReplyAsync(message),
+                onFailure: ReplyWithError);
         }
 
         [Command("data")]
-        [Summary("Definicja daty rozpoczęcia misji w formacie RRRR-MM-DD GG:MM.")]
+        [Summary("Definicja daty rozpoczęcia misji w formacie RRRR-MM-DD GG:MM. Można ją wymusić dopisując 'true' na końcu.")]
         [ContextDMOrChannel]
-        public async Task Date([Remainder] DateTime date) {
-            if (date.IsInPast())
-                await ReplyAsync(":warning: Podana data jest w przeszłości!");
-            else if (date.IsNoLaterThanDays(1)) await ReplyAsync(":warning: Podana data jest za mniej niż 24 godziny!");
-
-            var mission = SignupsData.GetCurrentlyEditedMission(Context.User.Id);
-
-            if (mission is null) {
-                await ReplyAsync(":warning: Nie tworzysz ani nie edytujesz teraz żadnej misji.");
-                return;
-            }
-
-            mission.Date = date;
-            if (!mission.CustomClose)
-                mission.CloseTime = date.AddMinutes(-60);
-
-            await ReplyAsync($"Data misji ustawiona na {date}, za {date.FromNow()}.");
+        public async Task Date(DateTime date, bool forceDate = false) {
+            SignupsLogic.SetDate(Context.User, date, forceDate).Match(
+                onSuccess: messages =>
+                {
+                    foreach (var message in messages)
+                    {
+                        ReplyAsync(message);
+                    }
+                },
+                onFailure: async error => await ReplyWithError(error));
         }
 
         [Command("zamkniecie")]
-        [Summary("Definiowanie czasu kiedy powinny zamknąć się zapisy, tak jak data w formacie RRRR-MM-DD GG:MM.")]
+        [Summary("Definiowanie czasu kiedy powinny zamknąć się zapisy, tak jak data w formacie RRRR-MM-DD GG:MM. " +
+                 "Można ją wymusić dopisując 'true' na końcu.")]
         [ContextDMOrChannel]
-        public async Task Close([Remainder] DateTime closeDate) {
-            if (closeDate.IsInPast())
-                await ReplyAsync(":warning: Podana data jest w przeszłości!");
-            else if (closeDate.IsNoLaterThanDays(1)) await ReplyAsync(":warning: Podana data jest za mniej niż 24 godziny!");
-
-            var mission = SignupsData.GetCurrentlyEditedMission(Context.User.Id);
-
-            if (mission is null) {
-                await ReplyAsync(":warning: Nie tworzysz ani nie edytujesz teraz żadnej misji.");
-                return;
-            }
-
-            if (closeDate < mission.Date) {
-                mission.CloseTime = closeDate;
-                mission.CustomClose = true;
-                await ReplyAsync($"Data zamknięcia zapisów ustawiona na {closeDate}, za {closeDate.FromNow()}!");
-            } else {
-                await ReplyAsync(":warning: Zamknięcie zapisów musi być przed datą misji!");
-            }
+        public async Task Close(DateTime closeDate, bool forceDate = false) {
+            SignupsLogic.SetCloseDate(Context.User, closeDate, forceDate).Match(
+                onSuccess: messages =>
+                {
+                    foreach (var message in messages)
+                    {
+                        ReplyAsync(message);
+                    }
+                },
+                onFailure: async error => await ReplyWithError(error));
         }
 
         [Command("dodaj-sekcje", RunMode = RunMode.Async)]
@@ -222,7 +159,7 @@ namespace ArmaforcesMissionBot.Modules
 
                 if (slotTexts.Length > 1)
                 {
-                    var team = new Mission.Team();
+                    var team = new Team();
                     team.Name = slotTexts[0];
                     team.Pattern = "";
 
@@ -236,7 +173,7 @@ namespace ArmaforcesMissionBot.Modules
 
                         if(match.Success)
                         {
-                            var slot = new Mission.Team.Slot(match.Groups[1].Value, int.Parse(match.Groups[2].Value.Substring(1, match.Groups[2].Value.Length - 2)));
+                            var slot = SlotFactory.CreateSlot(match.Groups[1].Value, int.Parse(match.Groups[2].Value.Substring(1, match.Groups[2].Value.Length - 2)));
                             if(match.Groups.Count == 4)
                             {
                                 slot.Name = match.Groups[3].Value;
@@ -257,7 +194,7 @@ namespace ArmaforcesMissionBot.Modules
                         }
                     }
                     
-                   if (team.Slots
+                    if (team.Slots
                         .GroupBy(x => x.Emoji)
                         .Any(x => x.Count() > 1))
                     {
@@ -272,7 +209,6 @@ namespace ArmaforcesMissionBot.Modules
                         .WithFooter(team.Pattern);
 
                     _miscHelper.CreateConfirmationDialog(
-                        _dialogs,
                         Context,
                         embed.Build(),
                         dialog =>
@@ -314,73 +250,81 @@ namespace ArmaforcesMissionBot.Modules
             {
                 var mission = SignupsData.Missions.Single(x => x.Editing == Mission.EditEnum.New && x.Owner == Context.User.Id);
                 // SL
-                var team = new Mission.Team();
-                team.Name = teamName + " SL | <:wsciekly_zulu:426139721001992193> [1] | 🚑 [1]";
-                var slot = new Mission.Team.Slot(
-                    "Dowódca",
-                    "<:wsciekly_zulu:426139721001992193>",
-                    1);
-                team.Slots.Add(slot);
+                mission.Teams.Add(
+                    new Team
+                    {
+                        Name = teamName + $" SL | {EmoteConstants.WscieklyZulu} [1] | {EmojiConstants.Ambulance} [1]",
+                        Slots = new List<Slot>
+                        {
+                            new Slot(
+                                "Dowódca",
+                                EmoteConstants.WscieklyZulu,
+                                1),
+                            new Slot(
+                                "Medyk",
+                                EmojiConstants.Ambulance,
+                                1)
+                        },
+                        Pattern = $"{EmoteConstants.WscieklyZulu} [1] | {EmojiConstants.Ambulance} [1]"
+                    });
 
-                slot = new Mission.Team.Slot(
-                    "Medyk",
-                    "🚑",
-                    1);
-                team.Slots.Add(slot);
-                team.Pattern = "<:wsciekly_zulu:426139721001992193> [1] | 🚑 [1]";
-                mission.Teams.Add(team);
+                mission.Teams.Add(
+                    new Team
+                    {
+                        Name = teamName +
+                               $" 1 | {EmoteConstants.WscieklyZulu} [1] | {EmojiConstants.Ambulance} [1] | {EmoteConstants.Beton} [" +
+                               (teamSize - 2) + "]",
+                        Slots = new List<Slot>
+                        {
+                            new Slot(
+                                "Dowódca",
+                                EmoteConstants.WscieklyZulu,
+                                1),
+                            new Slot(
+                                "Medyk",
+                                EmojiConstants.Ambulance,
+                                1),
+                            new Slot(
+                                "BPP",
+                                EmoteConstants.Beton,
+                                teamSize - 2)
+                        },
+                        Pattern =
+                            $"{EmoteConstants.WscieklyZulu} [1] | {EmojiConstants.Ambulance} [1] | {EmoteConstants.Beton} [" +
+                            (teamSize - 2) + "]"
+                    });
 
-                // team 1
-                team = new Mission.Team();
-                team.Name = teamName + " 1 | <:wsciekly_zulu:426139721001992193> [1] | 🚑 [1] | <:beton:437603383373987853> [" + (teamSize-2) + "]";
-                slot = new Mission.Team.Slot(
-                    "Dowódca",
-                    "<:wsciekly_zulu:426139721001992193>",
-                    1);
-                team.Slots.Add(slot);
-
-                slot = new Mission.Team.Slot(
-                    "Medyk",
-                    "🚑",
-                    1);
-                team.Slots.Add(slot);
-
-                slot = new Mission.Team.Slot(
-                    "BPP",
-                    "<:beton:437603383373987853>",
-                    teamSize - 2);
-                team.Slots.Add(slot);
-                team.Pattern = "<:wsciekly_zulu:426139721001992193> [1] | 🚑 [1] | <:beton:437603383373987853> [" + (teamSize - 2) + "]";
-                mission.Teams.Add(team);
-
-                // team 2
-                team = new Mission.Team();
-                team.Name = teamName + " 2 | <:wsciekly_zulu:426139721001992193> [1] | 🚑 [1] | <:beton:437603383373987853> [" + (teamSize - 2) + "]";
-                slot = new Mission.Team.Slot(
-                    "Dowódca",
-                    "<:wsciekly_zulu:426139721001992193>",
-                    1);
-                team.Slots.Add(slot);
-
-                slot = new Mission.Team.Slot(
-                    "Medyk",
-                    "🚑",
-                    1);
-                team.Slots.Add(slot);
-
-                slot = new Mission.Team.Slot(
-                    "BPP",
-                    "<:beton:437603383373987853>",
-                    teamSize - 2);
-                team.Slots.Add(slot);
-                team.Pattern = "<:wsciekly_zulu:426139721001992193> [1] | 🚑 [1] | <:beton:437603383373987853> [" + (teamSize - 2) + "]";
-                mission.Teams.Add(team);
+                mission.Teams.Add(
+                    new Team
+                    {
+                        Name = teamName +
+                               $" 2 | {EmoteConstants.WscieklyZulu} [1] | {EmojiConstants.Ambulance} [1] | {EmoteConstants.Beton} [" +
+                               (teamSize - 2) + "]",
+                        Slots = new List<Slot>
+                        {
+                            new Slot(
+                                "Dowódca",
+                                EmoteConstants.WscieklyZulu,
+                                1),
+                            new Slot(
+                                "Medyk",
+                                EmojiConstants.Ambulance,
+                                1),
+                            new Slot(
+                                "BPP",
+                                EmoteConstants.Beton,
+                                teamSize - 2)
+                        },
+                        Pattern =
+                            $"{EmoteConstants.WscieklyZulu} [1] | {EmojiConstants.Ambulance} [1] | {EmoteConstants.Beton} [" +
+                            (teamSize - 2) + "]"
+                    });
 
                 await ReplyAsync("Jeszcze coś?");
             }
             else
             {
-                await ReplyAsync("A może byś mi najpierw powiedział do jakiej misji chcesz dodać ten zespół?");
+                await ReplyWithError("A może byś mi najpierw powiedział do jakiej misji chcesz dodać ten zespół?");
             }
         }
 
@@ -395,12 +339,12 @@ namespace ArmaforcesMissionBot.Modules
 	        {
 		        var mission = SignupsData.Missions.Single(x => x.Editing == Mission.EditEnum.New && x.Owner == Context.User.Id);
 		        // SL
-		        var team = new Mission.Team();
-                team.Slots.Add(new Mission.Team.Slot(
+		        var team = new Team();
+                team.Slots.Add(new Slot(
 	                "Rezerwa",
-                    "🚑",
+                    EmojiConstants.Ambulance,
 	                slots));
-                team.Pattern = $"Rezerwa 🚑 [{slots}]";
+                team.Pattern = $"Rezerwa {EmojiConstants.Ambulance} [{slots}]";
                 mission.Teams.Add(team);
 
                 await ReplyAsync("Jeszcze coś?");
@@ -430,14 +374,16 @@ namespace ArmaforcesMissionBot.Modules
                 mission.EditTeamsMessage = message.Id;
                 mission.HighlightedTeam = 0;
 
-                var reactions = new IEmote[5];
-                reactions[0] = new Emoji("⬆");
-                reactions[1] = new Emoji("⬇");
-                reactions[2] = new Emoji("📍");
-                reactions[3] = new Emoji("✂");
-                reactions[4] = new Emoji("🔒");
+                var reactions = new List<IEmote>
+                {
+                    EmojiConstants.ArrowUpEmote,
+                    EmojiConstants.ArrowDownEmote,
+                    EmojiConstants.PinEmote,
+                    EmojiConstants.ScissorsEmote,
+                    EmojiConstants.LockEmote
+                };
 
-                await message.AddReactionsAsync(reactions);
+                await message.AddReactionsAsync(reactions.ToArray());
             }
         }
 
@@ -446,23 +392,10 @@ namespace ArmaforcesMissionBot.Modules
         [ContextDMOrChannel]
         public async Task ToggleMentionEveryone()
         {
-            var mission = SignupsData.GetCurrentlyEditedMission(Context.User.Id);
-
-            if (mission is null)
-            {
-                await ReplyAsync(":warning: Nie tworzysz ani nie edytujesz teraz żadnej misji.");
-                return;
-            }
-
-            mission.MentionEveryone = !mission.MentionEveryone;
-            if (mission.MentionEveryone)
-            {
-                await ReplyAsync("Wołanie wszystkich zostało włączone.");
-            }
-            else
-            {
-                await ReplyAsync("Wołanie wszystkich zostało wyłączone.");
-            }
+            await SignupsLogic.ToggleMentionEveryone(Context.User)
+                .Match(
+                    onSuccess: message => ReplyAsync(message),
+                    onFailure: ReplyWithError);
         }
 
         [Command("koniec")]
@@ -470,55 +403,56 @@ namespace ArmaforcesMissionBot.Modules
         [ContextDMOrChannel]
         public async Task EndSignups()
         {
-            if (SignupsData.Missions.Any(x => x.Editing == Mission.EditEnum.New && x.Owner == Context.User.Id))
-            {
-                var mission = SignupsData.Missions.Single(x => x.Editing == Mission.EditEnum.New && x.Owner == Context.User.Id);
-                if (SignupHelper.CheckMissionComplete(mission))
-                {
-                    var embed = new EmbedBuilder()
-                        .WithColor(Color.Green)
-                        .WithTitle(mission.Title)
-                        .WithDescription(mission.Description)
-                        .WithFooter(mission.Date.ToString())
-                        .AddField("Zamknięcie zapisów:", mission.CloseTime.ToString())
-                        .AddField("Wołanie wszystkich:", mission.MentionEveryone)
-                        .WithAuthor(Context.User);
+            var mission = SignupsData.GetCurrentlyCreatedMission(Context.User.Id);
 
-                    if (mission.Attachment != null)
-                        embed.WithImageUrl(mission.Attachment);
-
-                    mission.Modlist ??= "https://modlist.armaforces.com/#/download/default";
-
-                    embed.AddField("Modlista:", mission.Modlist);
-
-                    _miscHelper.BuildTeamsEmbed(mission.Teams, embed);
-
-                    _miscHelper.CreateConfirmationDialog(
-                        _dialogs,
-                       Context,
-                       embed.Build(),
-                       dialog =>
-                       {
-                           _dialogs.Dialogs.Remove(dialog);
-                           _ = SignupHelper.CreateSignupChannel(SignupsData, Context.User.Id, Context.Channel);
-                           ReplyAsync("No to lecim!");
-                       },
-                       dialog =>
-                       {
-                           Context.Channel.DeleteMessageAsync(dialog.DialogID);
-                           _dialogs.Dialogs.Remove(dialog);
-                           ReplyAsync("Poprawiaj to szybko!");
-                       });
-                }
-                else
-                {
-                    await ReplyAsync("Nie uzupełniłeś wszystkich informacji ciołku!");
-                }
-            }
-            else
+            if (mission is null)
             {
                 await ReplyAsync("Co ty chcesz kończyć jak nic nie zacząłeś?");
+                return;
             }
+
+            if (!SignupHelper.CheckMissionComplete(mission))
+            {
+                await ReplyAsync("Nie uzupełniłeś wszystkich informacji ciołku!");
+                return;
+            }
+
+            var embed = new EmbedBuilder()
+                .WithColor(Color.Green)
+                .WithTitle(mission.Title)
+                .WithDescription(mission.Description)
+                .WithFooter(mission.Date.ToString())
+                .AddField("Zamknięcie zapisów:", mission.CloseTime.ToString())
+                .AddField("Wołanie wszystkich:", mission.MentionEveryone)
+                .WithAuthor(Context.User);
+
+            if (mission.Attachment != null)
+                embed.WithImageUrl(mission.Attachment);
+
+            mission.Modlist ??= "https://modlist.armaforces.com/#/download/default";
+
+            embed.AddField("Modlista:", mission.Modlist);
+
+            _miscHelper.BuildTeamsEmbed(mission.Teams, embed);
+
+            _miscHelper.CreateConfirmationDialog(
+                Context,
+                embed.Build(),
+                dialog =>
+                {
+                    _dialogs.Dialogs.Remove(dialog);
+                    _ = SignupHelper.CreateSignupChannel(
+                        SignupsData,
+                        Context.User.Id,
+                        Context.Channel);
+                    ReplyAsync("No to lecim!");
+                },
+                dialog =>
+                {
+                    Context.Channel.DeleteMessageAsync(dialog.DialogID);
+                    _dialogs.Dialogs.Remove(dialog);
+                    ReplyAsync("Poprawiaj to szybko!");
+                });
         }
 
         [Command("zaladowane")]
@@ -553,19 +487,10 @@ namespace ArmaforcesMissionBot.Modules
         }
 
         [Command("anuluj")]
-        [Summary("Anuluje tworzenie misji, usuwa wszystkie zdefiniowane o niej informacje. Nie anuluje to już stworzonych zapisów.")]
+        [Summary(
+            "Anuluje tworzenie misji, usuwa wszystkie zdefiniowane o niej informacje. Nie anuluje to już stworzonych zapisów.")]
         [ContextDMOrChannel]
-        public async Task CancelSignups()
-        {
-            if (SignupsData.Missions.Any(x => x.Editing == Mission.EditEnum.New && x.Owner == Context.User.Id))
-            {
-                SignupsData.Missions.Remove(SignupsData.Missions.Single(x => x.Editing == Mission.EditEnum.New && x.Owner == Context.User.Id));
-
-                await ReplyAsync("I tak nikt nie chce grać na twoich misjach.");
-            }
-            else
-                await ReplyAsync("Siebie anuluj, nie tworzysz żadnej misji aktualnie.");
-        }
+        public async Task CancelSignups() => await CancelChanges();
 
         [Command("aktualne-misje")]
         [Summary("Wyświetla aktualnie przeprowadzane zapisy użytkownika wraz z indeksami.")]
@@ -629,32 +554,9 @@ namespace ArmaforcesMissionBot.Modules
         [ContextDMOrChannel]
         public async Task EditMission(IGuildChannel channel)
         {
-            var currentlyEditedMission = SignupsData.GetCurrentlyEditedMission(Context.User.Id);
-
-            if (currentlyEditedMission == null)
-            {
-                var missionToBeEdited = SignupsData.Missions.FirstOrDefault(x => x.SignupChannel == channel.Id);
-                if (missionToBeEdited == null)
-                {
-                    await ReplyAsync("Nie ma misji o takiej nazwie.");
-                    return;
-                }    
-                
-                if (missionToBeEdited.Owner != Context.User.Id)
-                {
-                    await ReplyAsync("Nie nauczyli żeby nie ruszać nie swojego?");
-                    return;
-                }
-
-                var serialized = JsonConvert.SerializeObject(missionToBeEdited);
-                SignupsData.BeforeEditMissions[Context.User.Id] = JsonConvert.DeserializeObject<ArmaforcesMissionBotSharedClasses.Mission>(serialized);
-                missionToBeEdited.Editing = ArmaforcesMissionBotSharedClasses.Mission.EditEnum.Started;
-                await ReplyAsync($"A więc `{missionToBeEdited.Title}`. Co chcesz zmienić?");
-            }
-            else
-            {
-                await ReplyAsync($"Hola hola, nie wszystko naraz. Skończ edytować `{currentlyEditedMission.Title}`.");
-            }
+            await SignupsLogic.StartSignupsEdition(Context.User, channel).Match(
+                onSuccess: message => ReplyAsync(message),
+                onFailure: ReplyWithError);
         }
 
         [Command("edytuj-nazwe-misji")]
@@ -662,22 +564,10 @@ namespace ArmaforcesMissionBot.Modules
         [ContextDMOrChannel]
         public async Task MissionName([Remainder] string newTitle)
         {
-            if (SignupsData.Missions.Any(x =>
-                (x.Editing == ArmaforcesMissionBotSharedClasses.Mission.EditEnum.Started) &&
-                x.Owner == Context.User.Id))
-            {
-                var mission = SignupsData.Missions.Single(x =>
-                (x.Editing == ArmaforcesMissionBotSharedClasses.Mission.EditEnum.Started) &&
-                x.Owner == Context.User.Id);
-
-                mission.Title = newTitle;
-
-                await ReplyAsync("Niech będzie...");
-            }
-            else
-            {
-                await ReplyAsync("Bez wybrania misji to dupę se edytuj. Pozdrawiam.");
-            }
+            await SignupsLogic.SetMissionName(Context.User, newTitle)
+                .Match(
+                    onSuccess: message => ReplyAsync(message),
+                    onFailure: ReplyWithError);
         }
 
         [Command("zapisz-zmiany")]
@@ -685,40 +575,10 @@ namespace ArmaforcesMissionBot.Modules
         [ContextDMOrChannel]
         public async Task SaveChanges(bool announce = false)
         {
-            if (SignupsData.Missions.Any(x => x.Editing == Mission.EditEnum.Started && x.Owner == Context.User.Id))
-            {
-                var mission = SignupsData.Missions.Single(x => x.Editing == Mission.EditEnum.Started && x.Owner == Context.User.Id);
-
-                await mission.Access.WaitAsync(-1);
-                try
-                {
-                    if (SignupHelper.CheckMissionComplete(mission))
-                    {
-                        var guild = _client.GetGuild(_config.AFGuild);
-
-                        var channel = await SignupHelper.UpdateMission(guild, mission, SignupsData);
-
-                        mission.Editing = Mission.EditEnum.NotEditing;
-
-                        if(announce)
-                            await channel.SendMessageAsync("@everyone Misja uległa modyfikacji, proszę zapoznać się z nowymi informacjami i dostosować swój beton.");
-
-                        await ReplyAsync("Się robi szefie!");
-                    }
-                    else
-                    {
-                        await ReplyAsync("Nie uzupełniłeś wszystkich informacji ciołku!");
-                    }
-                }
-                catch (Exception e)
-                {
-                    await ReplyAsync($"Oj, coś poszło nie tak: {e.Message}");
-                }
-                finally
-                {
-                    mission.Access.Release();
-                }
-            }
+            await (await SignupsLogic.FinishSignupsEdition(Context.User))
+                .Match(
+                    onSuccess: message => ReplyAsync(message),
+                    onFailure: ReplyWithError);
         }
 
         [Command("anuluj-edycje")]
@@ -726,31 +586,10 @@ namespace ArmaforcesMissionBot.Modules
         [ContextDMOrChannel]
         public async Task CancelChanges(bool announce = false)
         {
-            if (SignupsData.Missions.Any(x => x.Editing == Mission.EditEnum.Started && x.Owner == Context.User.Id))
-            {
-                var mission = SignupsData.Missions.Single(x => x.Editing == Mission.EditEnum.Started && x.Owner == Context.User.Id);
-                
-                await mission.Access.WaitAsync(-1);
-                try
-                {
-                    // Don't want to write another function just to copy class, and performance isn't a problem here so just serialize it and deserialize
-                    SignupsData.Missions.Remove(mission);
-                    var serialized = JsonConvert.SerializeObject(SignupsData.BeforeEditMissions[Context.User.Id]);
-                    var oldMission = JsonConvert.DeserializeObject<Mission>(serialized);
-                    SignupsData.Missions.Add(oldMission);
-
-                    oldMission.Editing = Mission.EditEnum.NotEditing;
-                    await ReplyAsync("I dobrze, tylko byś ludzi wkurwiał...");
-                }
-                catch (Exception e)
-                {
-                    await ReplyAsync($"Oj, coś poszło nie tak: {e.Message}");
-                }
-                finally
-                {
-                    mission.Access.Release();
-                }
-            }
+            await SignupsLogic.CancelSignupsEdition(Context.User)
+                .Match(
+                    onSuccess: message => ReplyAsync(message),
+                    onFailure: ReplyWithError);
         }
 
         [Command("upgrade")]

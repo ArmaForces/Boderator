@@ -1,5 +1,4 @@
 ﻿using ArmaforcesMissionBot.DataClasses;
-using ArmaforcesMissionBotSharedClasses;
 using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
@@ -8,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using ArmaforcesMissionBot.Features.Signups.Missions;
 
 namespace ArmaforcesMissionBot.Helpers
 {
@@ -241,12 +241,12 @@ namespace ArmaforcesMissionBot.Helpers
                 {
                     try
                     {
-                        var emote = Emote.Parse(HttpUtility.HtmlDecode(slot.Emoji));
+                        var emote = Emote.Parse(HttpUtility.HtmlDecode(slot.Emoji.ToString()));
                         reactions[num++] = emote;
                     }
                     catch (Exception e)
                     {
-                        var emoji = new Emoji(HttpUtility.HtmlDecode(slot.Emoji));
+                        var emoji = new Emoji(HttpUtility.HtmlDecode(slot.Emoji.ToString()));
                         reactions[num++] = emoji;
                     }
                 }

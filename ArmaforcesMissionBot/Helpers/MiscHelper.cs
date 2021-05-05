@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
+using ArmaforcesMissionBot.Features.Signups.Missions;
 using static ArmaforcesMissionBot.DataClasses.OpenedDialogs;
 
 namespace ArmaforcesMissionBot.Helpers
@@ -22,7 +23,7 @@ namespace ArmaforcesMissionBot.Helpers
             _config = config;
         }
 
-        public List<string> BuildTeamSlots(ArmaforcesMissionBotSharedClasses.Mission.Team team)
+        public List<string> BuildTeamSlots(Team team)
         {
             List<string> results = new List<string>();
             results.Add("");
@@ -30,7 +31,7 @@ namespace ArmaforcesMissionBot.Helpers
             {
                 for (var i = 0; i < slot.Count; i++)
                 {
-                    string description = $"{HttpUtility.HtmlDecode(slot.Emoji)}";
+                    string description = $"{HttpUtility.HtmlDecode(slot.Emoji.Name)}";
                     if (slot.Name != "" && i == 0)
                         description += $"({slot.Name})";
                     description += "-";
@@ -60,7 +61,7 @@ namespace ArmaforcesMissionBot.Helpers
             return results;
         }
 
-        public void BuildTeamsEmbed(List<ArmaforcesMissionBotSharedClasses.Mission.Team> teams, EmbedBuilder builder, bool removeSlotNamesFromName = false)
+        public void BuildTeamsEmbed(List<Team> teams, EmbedBuilder builder, bool removeSlotNamesFromName = false)
         {
             foreach (var team in teams)
             {
@@ -71,8 +72,8 @@ namespace ArmaforcesMissionBot.Helpers
                 {
                     foreach (var slot in team.Slots)
                     {
-                        if (teamName.Contains(slot.Emoji))
-                            teamName = teamName.Remove(teamName.IndexOf(slot.Emoji));
+                        if (teamName.Contains(slot.Emoji.Name))
+                            teamName = teamName.Remove(teamName.IndexOf(slot.Emoji.Name));
                     }
                 }
 
@@ -88,7 +89,7 @@ namespace ArmaforcesMissionBot.Helpers
             }
         }
 
-        public static string BuildEditTeamsPanel(List<ArmaforcesMissionBotSharedClasses.Mission.Team> teams, int highlightIndex)
+        public static string BuildEditTeamsPanel(List<Team> teams, int highlightIndex)
         {
             string result = "";
 
@@ -107,12 +108,12 @@ namespace ArmaforcesMissionBot.Helpers
             return result;
         }
 
-        public static int CountFreeSlots(ArmaforcesMissionBotSharedClasses.Mission mission)
+        public static int CountFreeSlots(Mission mission)
         {
             return CountAllSlots(mission) - mission.SignedUsers.Count;
         }
 
-        public static int CountAllSlots(ArmaforcesMissionBotSharedClasses.Mission mission)
+        public static int CountAllSlots(Mission mission)
         {
             int slots = 0;
             foreach (var team in mission.Teams)
@@ -126,12 +127,14 @@ namespace ArmaforcesMissionBot.Helpers
             return slots;
         }
 
+#nullable enable
         public async void CreateConfirmationDialog(
-            OpenedDialogs openedDialogs,
             SocketCommandContext context,
             Embed description,
             Action<Dialog> confirmAction,
-            Action<Dialog> cancelAction)
+            Action<Dialog> cancelAction,
+            OpenedDialogs? openedDialogs = null)
+#nullable restore
         {
             var dialog = new Dialog();
 
@@ -143,13 +146,13 @@ namespace ArmaforcesMissionBot.Helpers
             dialog.Buttons["❌"] = cancelAction;
 
             var reactions = new List<IEmote>();
-            foreach(var key in dialog.Buttons.Keys)
+            foreach (var key in dialog.Buttons.Keys)
             {
                 reactions.Add(new Emoji(key));
             }
             await message.AddReactionsAsync(reactions.ToArray());
 
-            openedDialogs.Dialogs.Add(dialog);
+            openedDialogs?.Dialogs.Add(dialog);
         }
 
         public static MatchCollection GetSlotMatchesFromText(string text)

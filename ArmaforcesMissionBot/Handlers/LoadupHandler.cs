@@ -1,16 +1,18 @@
-﻿using ArmaforcesMissionBot.DataClasses;
-using Discord;
-using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using ArmaforcesMissionBot.DataClasses;
 using ArmaforcesMissionBot.Features.Modsets;
 using ArmaforcesMissionBot.Features.Modsets.Legacy;
+using ArmaforcesMissionBot.Features.Signups.Missions;
+using ArmaforcesMissionBot.Features.Signups.Missions.Slots;
+using ArmaforcesMissionBot.Helpers;
+using Discord;
+using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
 using static ArmaforcesMissionBot.DataClasses.SignupsData;
 
 namespace ArmaforcesMissionBot.Handlers
@@ -22,6 +24,7 @@ namespace ArmaforcesMissionBot.Handlers
         private Config _config;
         private ModsetProvider _newModsetProvider;
         private LegacyModsetProvider _legacyModsetProvider;
+        private ISlotFactory _slotFactory;
 
         public async Task Install(IServiceProvider map)
         {
@@ -29,6 +32,7 @@ namespace ArmaforcesMissionBot.Handlers
             _config = map.GetService<Config>();
             _newModsetProvider = new ModsetProvider(map.GetService<IModsetsApiClient>());
             _legacyModsetProvider = new LegacyModsetProvider();
+            _slotFactory = map.GetService<ISlotFactory>();
             _services = map;
             // Hook the MessageReceived event into our command handler
             _client.GuildAvailable += Load;
@@ -36,7 +40,7 @@ namespace ArmaforcesMissionBot.Handlers
 
         private async Task Load(SocketGuild guild)
         {
-            Console.WriteLine($"[{DateTime.Now.ToString()}] Loading up from: {guild.Name}");
+            Console.WriteLine($"[{DateTime.Now}] Loading up from: {guild.Name}");
 
             await LoadMissions(guild);
             await LoadBans(guild);
@@ -52,22 +56,23 @@ namespace ArmaforcesMissionBot.Handlers
 
             Console.WriteLine($"[{DateTime.Now.ToString()}] Loading missions");
 
-            foreach (var channel in channels.Channels.Where(x => x.Id != _config.SignupsArchive && x.Id != _config.CreateMissionChannel && x.Id != _config.HallOfShameChannel).Reverse())
+            foreach (var channel in channels.Channels.Where(
+                    x => x.Id != _config.SignupsArchive && x.Id != _config.CreateMissionChannel &&
+                         x.Id != _config.HallOfShameChannel)
+                .Reverse())
             {
                 if (signups.Missions.Any(x => x.SignupChannel == channel.Id))
                     continue;
-                var mission = new ArmaforcesMissionBotSharedClasses.Mission();
+                var mission = new Mission();
 
                 var textChannel = channel as SocketTextChannel;
                 var messages = textChannel.GetMessagesAsync();
-                List<IMessage> messagesNormal = new List<IMessage>();
-                await messages.ForEachAsync(async x =>
-                {
-                    foreach (var it in x)
+                var messagesNormal = new List<IMessage>();
+                await messages.ForEachAsync(
+                    async x =>
                     {
-                        messagesNormal.Add(it);
-                    }
-                });
+                        foreach (var it in x) messagesNormal.Add(it);
+                    });
 
                 mission.SignupChannel = channel.Id;
 
@@ -88,14 +93,16 @@ namespace ArmaforcesMissionBot.Handlers
                         else
                             pattern = embed.Title;
 
-                        MatchCollection matches = Helpers.MiscHelper.GetSlotMatchesFromText(pattern);
+                        var matches = MiscHelper.GetSlotMatchesFromText(pattern);
 
                         if (matches.Count > 0)
                         {
-                            var team = new ArmaforcesMissionBotSharedClasses.Mission.Team();
-                            team.Name = embed.Title;
+                            var team = new Team
+                            {
+                                Name = embed.Title
+                            };
                             pattern = "";
-                            foreach (Match match in matches.Reverse())
+                            foreach (var match in matches.Reverse())
                             {
                                 var icon = match.Groups[1].Value;
                                 if (icon[0] == ':')
@@ -106,9 +113,10 @@ namespace ArmaforcesMissionBot.Handlers
                                     icon = $"<{animated}:{foundEmote.Name}:{foundEmote.Id}>";
                                     pattern = pattern.Replace(match.Groups[1].Value, icon);
                                 }
+
                                 var count = match.Groups[2].Value;
                                 var name = match.Groups[3].Success ? match.Groups[3].Value : "";
-                                var slot = new ArmaforcesMissionBotSharedClasses.Mission.Team.Slot(
+                                var slot = _slotFactory.CreateSlot(
                                     name,
                                     icon,
                                     int.Parse(count.Substring(1, count.Length - 2)));
@@ -124,43 +132,46 @@ namespace ArmaforcesMissionBot.Handlers
                             team.Name = team.Name.Replace("|", "");
 
                             if (embed.Description != null)
-                            {
                                 try
                                 {
-                                    string signedPattern = @"(.+)(?:\(.*\))?-\<\@\!([0-9]+)\>";
-                                    MatchCollection signedMatches = Regex.Matches(embed.Description, signedPattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
-                                    foreach (Match match in signedMatches.Reverse())
+                                    var signedPattern = @"(.+)(?:\(.*\))?-\<\@\!([0-9]+)\>";
+                                    var signedMatches = Regex.Matches(
+                                        embed.Description,
+                                        signedPattern,
+                                        RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+                                    foreach (var match in signedMatches.Reverse())
                                     {
                                         var signedID = ulong.Parse(match.Groups[2].Value);
                                         mission.SignedUsers.Add(signedID);
-                                        Console.WriteLine($"{match.Groups[1].Value} : {match.Groups[2].Value} ({signedID})");
-                                        team.Slots.Single(x => x.Emoji == match.Groups[1].Value).Signed.Add(signedID);
+                                        Console.WriteLine(
+                                            $"{match.Groups[1].Value} : {match.Groups[2].Value} ({signedID})");
+                                        team.Slots.Single(x => x.Emoji.Name == match.Groups[1].Value).Signed.Add(signedID);
                                     }
                                 }
-                                catch(Exception e)
+                                catch (Exception e)
                                 {
                                     Console.WriteLine($"Failed loading team {team.Name} : {e.Message}");
                                 }
-                            }
 
                             team.TeamMsg = message.Id;
                             team.Pattern = pattern;
                             mission.Teams.Add(team);
                         }
-                    }
-					else
-					{
-						mission.Title = embed.Title;
+                    } else
+                    {
+                        mission.Title = embed.Title;
                         mission.Description = embed.Description;
                         mission.Owner = ulong.Parse(embed.Author.Value.Url.Substring(BotConstants.DISCORD_USER_URL_PREFIX.Length));
                         // Do I need author id again?
                         mission.Attachment = embed.Image.HasValue ? embed.Image.Value.Url : null;
                         foreach (var field in embed.Fields)
-                        {
                             switch (field.Name)
                             {
                                 case "Data:":
-                                    mission.Date = DateTime.ParseExact(field.Value, "dd.MM.yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                    mission.Date = DateTime.ParseExact(
+                                        field.Value,
+                                        new []{ "dd.MM.yyyy HH:mm:ss", "yyyy-MM-dd HH:mm:ss"},
+                                        CultureInfo.InvariantCulture);
                                     break;
                                 case "Modlista:":
                                     mission.Modlist = mission.ModlistUrl = field.Value;
@@ -169,15 +180,14 @@ namespace ArmaforcesMissionBot.Handlers
                                 case "Zamknięcie zapisów:":
                                     uint timeDifference;
                                     if (!uint.TryParse(field.Value, out timeDifference))
-                                        mission.CloseTime = DateTime.ParseExact(field.Value, "dd.MM.yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                        mission.CloseTime = DateTime.ParseExact(
+                                            field.Value,
+                                            new[] { "dd.MM.yyyy HH:mm:ss", "yyyy-MM-dd HH:mm:ss" },
+                                            CultureInfo.InvariantCulture);
                                     else
-                                    {
                                         mission.CloseTime = mission.Date.AddMinutes(-timeDifference);
-                                    }
                                     break;
-
                             }
-                        }
                     }
                 }
 
@@ -187,10 +197,7 @@ namespace ArmaforcesMissionBot.Handlers
             }
 
             // Sort channels by date
-            signups.Missions.Sort((x, y) =>
-            {
-                return x.Date.CompareTo(y.Date);
-            });
+            signups.Missions.Sort((x, y) => { return x.Date.CompareTo(y.Date); });
         }
 
         private async Task LoadBans(SocketGuild guild)
@@ -201,18 +208,17 @@ namespace ArmaforcesMissionBot.Handlers
 
             var banChannel = guild.Channels.Single(x => x.Id == _config.HallOfShameChannel) as SocketTextChannel;
             var messages = banChannel.GetMessagesAsync();
-            List<IMessage> messagesNormal = new List<IMessage>();
-            await messages.ForEachAsync(async x =>
-            {
-                foreach (var it in x)
+            var messagesNormal = new List<IMessage>();
+            await messages.ForEachAsync(
+                async x =>
                 {
-                    messagesNormal.Add(it);
-                }
-            });
+                    foreach (var it in x) messagesNormal.Add(it);
+                });
 
             foreach (var message in messagesNormal)
             {
-                if (message.Embeds.Count == 1 && message.Content == "Bany na zapisy:" && message.Author.Id == _client.CurrentUser.Id)
+                if (message.Embeds.Count == 1 && message.Content == "Bany na zapisy:" &&
+                    message.Author.Id == _client.CurrentUser.Id)
                 {
                     if (signups.SignupBans.Count > 0)
                         continue;
@@ -223,20 +229,24 @@ namespace ArmaforcesMissionBot.Handlers
                     {
                         if (message.Embeds.First().Description != null)
                         {
-                            string banPattern = @"(\<\@\![0-9]+\>)-(.*)(?:$|\n)";
-                            MatchCollection banMatches = Regex.Matches(message.Embeds.First().Description, banPattern, RegexOptions.IgnoreCase);
+                            var banPattern = @"(\<\@\![0-9]+\>)-(.*)(?:$|\n)";
+                            var banMatches = Regex.Matches(
+                                message.Embeds.First().Description,
+                                banPattern,
+                                RegexOptions.IgnoreCase);
                             foreach (Match match in banMatches)
-                            {
-                                signups.SignupBans.Add(ulong.Parse(match.Groups[1].Value.Substring(3, match.Groups[1].Value.Length - 4)),DateTime.Parse(match.Groups[2].Value));
-                            }
+                                signups.SignupBans.Add(
+                                    ulong.Parse(match.Groups[1].Value.Substring(3, match.Groups[1].Value.Length - 4)),
+                                    DateTime.Parse(match.Groups[2].Value));
                         }
-                    }
-                    finally
+                    } finally
                     {
                         signups.BanAccess.Release();
                     }
                 }
-                if (message.Embeds.Count == 1 && message.Content == "Bany za spam reakcjami:" && message.Author.Id == _client.CurrentUser.Id)
+
+                if (message.Embeds.Count == 1 && message.Content == "Bany za spam reakcjami:" &&
+                    message.Author.Id == _client.CurrentUser.Id)
                 {
                     if (signups.SpamBans.Count > 0)
                         continue;
@@ -247,15 +257,17 @@ namespace ArmaforcesMissionBot.Handlers
                     {
                         if (message.Embeds.First().Description != null)
                         {
-                            string banPattern = @"(\<\@\![0-9]+\>)-(.*)(?:$|\n)";
-                            MatchCollection banMatches = Regex.Matches(message.Embeds.First().Description, banPattern, RegexOptions.IgnoreCase);
+                            var banPattern = @"(\<\@\![0-9]+\>)-(.*)(?:$|\n)";
+                            var banMatches = Regex.Matches(
+                                message.Embeds.First().Description,
+                                banPattern,
+                                RegexOptions.IgnoreCase);
                             foreach (Match match in banMatches)
-                            {
-                                signups.SpamBans.Add(ulong.Parse(match.Groups[1].Value.Substring(3, match.Groups[1].Value.Length - 4)), DateTime.Parse(match.Groups[2].Value));
-                            }
+                                signups.SpamBans.Add(
+                                    ulong.Parse(match.Groups[1].Value.Substring(3, match.Groups[1].Value.Length - 4)),
+                                    DateTime.Parse(match.Groups[2].Value));
                         }
-                    }
-                    finally
+                    } finally
                     {
                         signups.BanAccess.Release();
                     }
@@ -273,18 +285,17 @@ namespace ArmaforcesMissionBot.Handlers
             // History of bans
             var shameChannel = guild.Channels.Single(x => x.Id == _config.HallOfShameChannel) as SocketTextChannel;
             var messages = shameChannel.GetMessagesAsync();
-            List<IMessage> messagesNormal = new List<IMessage>();
-            await messages.ForEachAsync(async x =>
-            {
-                foreach (var it in x)
+            var messagesNormal = new List<IMessage>();
+            await messages.ForEachAsync(
+                async x =>
                 {
-                    messagesNormal.Add(it);
-                }
-            });
+                    foreach (var it in x) messagesNormal.Add(it);
+                });
 
             foreach (var message in messagesNormal)
             {
-                if (message.Embeds.Count == 1 && message.Content == "Historia banów na zapisy:" && message.Author.Id == _client.CurrentUser.Id)
+                if (message.Embeds.Count == 1 && message.Content == "Historia banów na zapisy:" &&
+                    message.Author.Id == _client.CurrentUser.Id)
                 {
                     if (signups.SignupBansHistory.Count > 0)
                         continue;
@@ -295,25 +306,27 @@ namespace ArmaforcesMissionBot.Handlers
                     {
                         if (message.Embeds.First().Description != null)
                         {
-                            string banPattern = @"(\<\@\![0-9]+\>)-([0-9]+)-([0-9]+)(?:$|\n)";
-                            MatchCollection banMatches = Regex.Matches(message.Embeds.First().Description, banPattern, RegexOptions.IgnoreCase);
+                            var banPattern = @"(\<\@\![0-9]+\>)-([0-9]+)-([0-9]+)(?:$|\n)";
+                            var banMatches = Regex.Matches(
+                                message.Embeds.First().Description,
+                                banPattern,
+                                RegexOptions.IgnoreCase);
                             foreach (Match match in banMatches)
-                            {
                                 signups.SignupBansHistory.Add(
                                     ulong.Parse(match.Groups[1].Value.Substring(3, match.Groups[1].Value.Length - 4)),
                                     new Tuple<uint, uint>(
                                         uint.Parse(match.Groups[2].Value),
                                         uint.Parse(match.Groups[3].Value)));
-                            }
                             Console.WriteLine($"[{DateTime.Now.ToString()}] Loaded signup ban history");
                         }
-                    }
-                    finally
+                    } finally
                     {
                         signups.BanAccess.Release();
                     }
                 }
-                if (message.Embeds.Count == 1 && message.Content == "Historia banów za spam reakcjami:" && message.Author.Id == _client.CurrentUser.Id)
+
+                if (message.Embeds.Count == 1 && message.Content == "Historia banów za spam reakcjami:" &&
+                    message.Author.Id == _client.CurrentUser.Id)
                 {
                     if (signups.SpamBansHistory.Count > 0)
                         continue;
@@ -324,21 +337,21 @@ namespace ArmaforcesMissionBot.Handlers
                     {
                         if (message.Embeds.First().Description != null)
                         {
-                            string banPattern = @"(\<\@\![0-9]+\>)-([0-9]+)-(.*)-(.*)(?:$|\n)";
-                            MatchCollection banMatches = Regex.Matches(message.Embeds.First().Description, banPattern, RegexOptions.IgnoreCase);
+                            var banPattern = @"(\<\@\![0-9]+\>)-([0-9]+)-(.*)-(.*)(?:$|\n)";
+                            var banMatches = Regex.Matches(
+                                message.Embeds.First().Description,
+                                banPattern,
+                                RegexOptions.IgnoreCase);
                             foreach (Match match in banMatches)
-                            {
                                 signups.SpamBansHistory.Add(
                                     ulong.Parse(match.Groups[1].Value.Substring(3, match.Groups[1].Value.Length - 4)),
                                     new Tuple<uint, DateTime, BanType>(
                                         uint.Parse(match.Groups[2].Value),
                                         DateTime.Parse(match.Groups[3].Value),
-                                        (BanType)Enum.Parse(typeof(BanType), match.Groups[4].Value)));
-                            }
+                                        (BanType) Enum.Parse(typeof(BanType), match.Groups[4].Value)));
                             Console.WriteLine($"[{DateTime.Now.ToString()}] Loaded reaction spam ban history");
                         }
-                    }
-                    finally
+                    } finally
                     {
                         signups.BanAccess.Release();
                     }
@@ -357,15 +370,13 @@ namespace ArmaforcesMissionBot.Handlers
 
             // History of missions
             var archiveChannel = guild.Channels.Single(x => x.Id == _config.SignupsArchive) as SocketTextChannel;
-            var messages = archiveChannel.GetMessagesAsync(limit: 10000);
-            List<IMessage> messagesNormal = new List<IMessage>();
-            await messages.ForEachAsync(async x =>
-            {
-                foreach (var it in x)
+            var messages = archiveChannel.GetMessagesAsync(10000);
+            var messagesNormal = new List<IMessage>();
+            await messages.ForEachAsync(
+                async x =>
                 {
-                    messagesNormal.Add(it);
-                }
-            });
+                    foreach (var it in x) messagesNormal.Add(it);
+                });
 
             foreach (var message in messagesNormal)
             {
@@ -384,7 +395,7 @@ namespace ArmaforcesMissionBot.Handlers
                 DateTime date;
                 if (!DateTime.TryParseExact(
                     embed.Footer.Value.Text,
-                    "dd.MM.yyyy HH:mm:ss",
+                    new[] { "dd.MM.yyyy HH:mm:ss", "yyyy-MM-dd HH:mm:ss" },
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.RoundtripKind,
                     out date))
@@ -400,9 +411,8 @@ namespace ArmaforcesMissionBot.Handlers
 
                 ulong signedUsers = 0;
                 ulong slots = 0;
-                foreach(var field in embed.Fields)
-                {
-                    switch(field.Name)
+                foreach (var field in embed.Fields)
+                    switch (field.Name)
                     {
                         case "Zamknięcie zapisów:":
                         case "Data:":
@@ -412,17 +422,20 @@ namespace ArmaforcesMissionBot.Handlers
                             newArchiveMission.ModlistName = GetModsetNameFromUnknownUrl(newArchiveMission.ModlistUrl);
                             break;
                         default:
-                            string signedPattern = @"(.+)(?:\(.*\))?-(\<\@\!([0-9]+)\>)?";
-                            MatchCollection signedMatches = Regex.Matches(field.Value, signedPattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
-                            foreach (Match match in signedMatches.Reverse())
+                            var signedPattern = @"(.+)(?:\(.*\))?-(\<\@\!([0-9]+)\>)?";
+                            var signedMatches = Regex.Matches(
+                                field.Value,
+                                signedPattern,
+                                RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+                            foreach (var match in signedMatches.Reverse())
                             {
                                 slots++;
                                 if (match.Groups[2].Success)
                                     signedUsers++;
                             }
+
                             break;
                     }
-                }
 
                 newArchiveMission.FreeSlots = slots - signedUsers;
                 newArchiveMission.AllSlots = slots;
@@ -431,10 +444,7 @@ namespace ArmaforcesMissionBot.Handlers
             }
 
             // Sort channels by date
-            archive.ArchiveMissions.Sort((x, y) =>
-            {
-                return x.Date.CompareTo(y.Date);
-            });
+            archive.ArchiveMissions.Sort((x, y) => { return x.Date.CompareTo(y.Date); });
 
             Console.WriteLine($"[{DateTime.Now.ToString()}] Loaded {archive.ArchiveMissions.Count} archive missions");
         }
