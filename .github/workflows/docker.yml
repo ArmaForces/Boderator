@@ -19,8 +19,7 @@ jobs:
       - name: Build ArmaforcesMissionBot
         if: success()
         run:
-          cd ArmaforcesMissionBot &&
-          docker build -t armaforces/boderator:latest -f Dockerfile .
+          docker build -t armaforces/boderator:latest -f ./ArmaforcesMissionBot/Dockerfile .
 
       - name: Push ArmaforcesMissionBot
         if: success()
