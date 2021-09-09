@@ -23,7 +23,7 @@ namespace ArmaForces.Boderator.BotService
         private OpenApiInfo OpenApiConfiguration { get; } = new()
         {
             Title = "ArmaForces Boderator API",
-            Description = "Does nothing.",
+            Description = "API that does nothing. For now.",
             Version = "v3",
             Contact = new OpenApiContact
             {
