@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using ArmaForces.Boderator.BotService.Configuration;
 using ArmaForces.Boderator.BotService.Features.DiscordClient.DTOs;
 using Discord;
 using Discord.WebSocket;
@@ -18,13 +19,12 @@ namespace ArmaForces.Boderator.BotService.Features.DiscordClient
 
         public DiscordService(
             DiscordSocketClient discordClient,
-            // TODO: Change the configuration to proper interface
-            IConfiguration configuration,
+            BoderatorConfiguration configuration,
             ILogger<DiscordService> logger)
         {
             _logger = logger;
             _discordClient = discordClient;
-            _token = configuration["token"];
+            _token = configuration.DiscordToken;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)

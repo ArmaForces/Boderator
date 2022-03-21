@@ -1,7 +1,9 @@
 using System;
 using ArmaForces.Boderator.BotService.Configuration;
 using ArmaForces.Boderator.BotService.Documentation;
+using ArmaForces.Boderator.BotService.Features.DiscordClient.Infrastructure.DependencyInjection;
 using ArmaForces.Boderator.Core.DependencyInjection;
+using Discord.WebSocket;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -37,8 +39,9 @@ namespace ArmaForces.Boderator.BotService
         {
             services.AddControllers();
             services.AddDocumentation(OpenApiConfiguration);
-            services.AutoAddInterfacesAsScoped(typeof(Startup).Assembly);
             services.AddSingleton(new BoderatorConfigurationFactory().CreateConfiguration());
+            services.AddDiscordClient();
+            services.AutoAddInterfacesAsScoped(typeof(Startup).Assembly);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
