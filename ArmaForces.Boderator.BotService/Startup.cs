@@ -1,6 +1,8 @@
 using System;
-using ArmaForces.Boderator.BotService.Discord;
+using ArmaForces.Boderator.BotService.Configuration;
 using ArmaForces.Boderator.BotService.Documentation;
+using ArmaForces.Boderator.BotService.Features.DiscordClient.Infrastructure.DependencyInjection;
+using ArmaForces.Boderator.Core.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -17,7 +19,7 @@ namespace ArmaForces.Boderator.BotService
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
+        private IConfiguration Configuration { get; }
 
         private OpenApiInfo OpenApiConfiguration { get; } = new()
         {
@@ -36,8 +38,10 @@ namespace ArmaForces.Boderator.BotService
         {
             services.AddControllers();
             services.AddDocumentation(OpenApiConfiguration);
-
-            services.AddDiscordService(Helpers.Configuration.DiscordToken);
+            services.AddDiscordClient(string.Empty);
+            services.AddBoderatorCore(Configuration.GetConnectionString("DefaultConnection"));
+            services.AutoAddInterfacesAsScoped(typeof(Startup).Assembly);
+            services.AddSingleton(x => x.GetRequiredService<IBoderatorConfigurationFactory>().CreateConfiguration());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -57,7 +61,7 @@ namespace ArmaForces.Boderator.BotService
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllerRoute("default", "api/{controller}/{action}");
+                endpoints.MapControllers();
             });
         }
     }

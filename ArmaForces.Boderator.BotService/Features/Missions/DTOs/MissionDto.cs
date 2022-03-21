@@ -1,0 +1,13 @@
+using System;
+
+namespace ArmaForces.Boderator.BotService.Features.Missions.DTOs
+{
+    public record MissionDto
+    {
+        public int MissionId { get; init; }
+
+        public string Title { get; init; } = string.Empty;
+        
+        public DateTime? MissionDate { get; init; }
+    }
+}
