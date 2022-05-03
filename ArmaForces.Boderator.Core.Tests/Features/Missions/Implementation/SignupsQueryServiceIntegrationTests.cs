@@ -37,7 +37,7 @@ public class SignupsQueryServiceIntegrationTests : DatabaseTestBase
     public async Task GetOpenSignups_NoOpenSignupsInDatabase_ReturnsEmptyList()
     {
         var testMission = await _missionsDbHelper.CreateTestMission();
-        var signup = await _signupsDbHelper.CreateTestSignups(testMission.MissionId);
+        var signup = await _signupsDbHelper.CreateTestSignups(testMission);
 
         var result = await _signupsQueryService.GetOpenSignups();
         result.ShouldBeSuccess(new List<Signups>{signup});

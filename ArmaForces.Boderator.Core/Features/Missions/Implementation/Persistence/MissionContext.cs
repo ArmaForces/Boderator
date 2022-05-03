@@ -1,3 +1,4 @@
+using ArmaForces.Boderator.Core.Missions.Implementation.Persistence.EntityConfigurations;
 using ArmaForces.Boderator.Core.Missions.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,10 +14,15 @@ internal sealed class MissionContext : DbContext
         
     public DbSet<Mission> Missions { get; set; }
     public DbSet<Signups> Signups { get; set; }
+    public DbSet<Team> Teams { get; set; }
+    public DbSet<Slot> Slots { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Team>()
-            .HasKey(x => new {x.SignupsId, x.Name});
+        modelBuilder
+            .ApplyConfiguration(new MissionEntityTypeConfiguration())
+            .ApplyConfiguration(new SignupsEntityTypeConfiguration())
+            .ApplyConfiguration(new TeamEntityTypeConfiguration())
+            .ApplyConfiguration(new SlotEntityTypeConfiguration());
     }
 }

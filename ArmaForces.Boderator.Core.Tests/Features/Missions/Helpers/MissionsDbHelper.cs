@@ -19,6 +19,7 @@ internal class MissionsDbHelper
 
         var addedEntry = _missionContext.Missions.Add(mission);
         await _missionContext.SaveChangesAsync();
+        _missionContext.ChangeTracker.Clear();
         
         return addedEntry.Entity;
     }

@@ -11,10 +11,9 @@ public static class SignupsMapper
         => new()
         {
             SignupsId = signups.SignupsId,
-            Status = (SignupsStatus) signups.Status,
+            Status = signups.Status,
             StartDate = signups.StartDate,
             CloseDate = signups.CloseDate,
-            MissionId = signups.MissionId,
             Teams = Map(signups.Teams)
         };
     

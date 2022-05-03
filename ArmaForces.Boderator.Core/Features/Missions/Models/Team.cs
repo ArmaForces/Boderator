@@ -9,6 +9,4 @@ public record Team
     public string Vehicle { get; init; } = string.Empty;
 
     public IReadOnlyList<Slot> Slots { get; init; } = new List<Slot>();
-        
-    public long SignupsId { get; init; }
 }
