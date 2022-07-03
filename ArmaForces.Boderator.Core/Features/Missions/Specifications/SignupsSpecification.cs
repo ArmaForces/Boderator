@@ -1,12 +1,13 @@
 ﻿using System;
+using ArmaForces.Boderator.Core.Infrastructure.Specifications;
 using ArmaForces.Boderator.Core.Missions.Models;
-using ArmaForces.Boderator.Core.Users;
+using ArmaForces.Boderator.Core.Missions.Specifications.Interfaces;
 
-namespace ArmaForces.Boderator.Core.Missions.Specification;
+namespace ArmaForces.Boderator.Core.Missions.Specifications;
 
 public record SignupsSpecification :
     IStartingSignupsSpecification,
-    IBuildingSignupsSpecification
+    IBuildingSpecification<Signups>
 {
     private SignupsSpecification() { }
     
@@ -22,7 +23,7 @@ public record SignupsSpecification :
         };
     }
 
-    public IBuildingSignupsSpecification ClosingAt(DateTimeOffset dateTime)
+    public IBuildingSpecification<Signups> ClosingAt(DateTimeOffset dateTime)
     {
         return this with
         {
@@ -37,9 +38,4 @@ public record SignupsSpecification :
             StartDate = StartAt.DateTime,
             CloseDate = CloseAt.DateTime
         };
-}
-
-public interface IStartingSignupsSpecification
-{
-    IBuildingSignupsSpecification ClosingAt(DateTimeOffset dateTime);
 }

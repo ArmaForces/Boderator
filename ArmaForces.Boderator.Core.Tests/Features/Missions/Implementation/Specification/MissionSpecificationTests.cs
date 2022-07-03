@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using ArmaForces.Boderator.Core.Missions.Models;
-using ArmaForces.Boderator.Core.Missions.Specification;
+using ArmaForces.Boderator.Core.Missions.Specifications;
 using ArmaForces.Boderator.Core.Modsets.Specification;
 using ArmaForces.Boderator.Core.Users;
 using AutoFixture;

@@ -18,7 +18,7 @@ internal class SignupsQueryService : ISignupsQueryService
 
     public async Task<Result<Signups>> GetSignups(long signupId)
         => await _signupsQueryRepository.GetSignups(signupId)
-           ?? Result.Failure<Models.Signups>($"Signup with ID {signupId} not found");
+           ?? Result.Failure<Signups>($"Signup with ID {signupId} not found");
 
     public async Task<Result<List<Signups>>> GetOpenSignups()
         => await _signupsQueryRepository.GetOpenSignups();

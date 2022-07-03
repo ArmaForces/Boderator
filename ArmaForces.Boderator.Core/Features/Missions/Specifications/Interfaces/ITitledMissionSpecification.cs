@@ -1,4 +1,4 @@
-﻿namespace ArmaForces.Boderator.Core.Missions.Specification;
+﻿namespace ArmaForces.Boderator.Core.Missions.Specifications.Interfaces;
 
 public interface ITitledMissionSpecification
 {

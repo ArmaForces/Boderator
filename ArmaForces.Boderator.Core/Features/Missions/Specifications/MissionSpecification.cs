@@ -1,9 +1,11 @@
 ﻿using System;
+using ArmaForces.Boderator.Core.Infrastructure.Specifications;
 using ArmaForces.Boderator.Core.Missions.Models;
+using ArmaForces.Boderator.Core.Missions.Specifications.Interfaces;
 using ArmaForces.Boderator.Core.Modsets.Specification;
 using ArmaForces.Boderator.Core.Users;
 
-namespace ArmaForces.Boderator.Core.Missions.Specification;
+namespace ArmaForces.Boderator.Core.Missions.Specifications;
 
 public record MissionSpecification :
     IOwnedMissionSpecification,
@@ -11,21 +13,21 @@ public record MissionSpecification :
     IDescribedMissionSpecification,
     IModsetSetMissionSpecification,
     IScheduledMissionSpecification,
-    IBuildingMissionSpecification
+    IBuildingSpecification<Models.Mission>
 {
     private MissionSpecification() { }
 
-    private User User { get; init; } = new();
+    public User User { get; private init; } = new();
     
-    private string Title { get; init; } = string.Empty;
+    public string Title { get; private init; } = string.Empty;
 
-    private string Description { get; init; } = string.Empty;
+    public string Description { get; private init; } = string.Empty;
 
-    private IBuildingModsetSpecification? ModsetSpecification { get; init; }
+    public IBuildingSpecification<Modset>? ModsetSpecification { get; private init; }
     
-    private DateTimeOffset Time { get; init; }
+    public DateTimeOffset Time { get; private init; }
     
-    private IBuildingSignupsSpecification? SignupsSpecification { get; init; }
+    public IBuildingSpecification<Signups>? SignupsSpecification { get; private init; }
 
     public static IOwnedMissionSpecification OwnedBy(User user)
     {
@@ -57,7 +59,7 @@ public record MissionSpecification :
         };
     }
 
-    public IModsetSetMissionSpecification WithModset(IBuildingModsetSpecification modsetSpecification)
+    public IModsetSetMissionSpecification WithModset(IBuildingSpecification<Modset> modsetSpecification)
     {
         if (modsetSpecification is null)
             throw new ArgumentNullException(nameof(modsetSpecification));
@@ -76,15 +78,18 @@ public record MissionSpecification :
         };
     }
 
-    public IBuildingMissionSpecification WithSignups(IBuildingSignupsSpecification signupsSpecification)
+    public IBuildingSpecification<Models.Mission> WithSignups(IBuildingSpecification<Signups> signupsSpecification)
     {
+        if (signupsSpecification is null)
+            throw new ArgumentNullException(nameof(signupsSpecification));
+        
         return this with
         {
             SignupsSpecification = signupsSpecification
         };
     }
 
-    public Mission Build()
+    public Models.Mission Build()
         => new()
         {
             Owner = User.ToString(),

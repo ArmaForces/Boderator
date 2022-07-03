@@ -1,17 +1,18 @@
 ﻿using System;
+using ArmaForces.Boderator.Core.Infrastructure.Specifications;
 
 namespace ArmaForces.Boderator.Core.Modsets.Specification;
 
-public class ModsetSpecification : IBuildingModsetSpecification
+public class ModsetSpecification : IBuildingSpecification<Modset>
 {
     private ModsetSpecification() { }
 
-    public static IBuildingModsetSpecification ByName(string modsetName)
+    public static IBuildingSpecification<Modset> ByName(string modsetName)
     {
         return new ModsetSpecification();
     }
 
-    public static IBuildingModsetSpecification ByUrl(Uri modsetUrl)
+    public static IBuildingSpecification<Modset> ByUrl(Uri modsetUrl)
     {
         return new ModsetSpecification();
     }
