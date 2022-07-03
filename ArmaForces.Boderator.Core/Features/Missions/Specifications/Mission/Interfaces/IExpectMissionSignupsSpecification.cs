@@ -3,7 +3,7 @@ using ArmaForces.Boderator.Core.Missions.Models;
 
 namespace ArmaForces.Boderator.Core.Missions.Specifications.Interfaces;
 
-public interface IScheduledMissionSpecification
+public interface IExpectMissionSignupsSpecification
 {
     IBuildingSpecification<Mission> WithSignups(IBuildingSpecification<Signups> signupsSpecification);
 }

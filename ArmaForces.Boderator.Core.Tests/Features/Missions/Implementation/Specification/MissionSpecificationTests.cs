@@ -34,20 +34,57 @@ public class MissionSpecificationTests
                 StartDate = _fixture.Create<DateTime>(),
                 CloseDate = _fixture.Create<DateTime>(),
                 Status = SignupsStatus.Created,
-                Teams = new List<Team>()
+                Teams = new List<Team>
+                {
+                    new()
+                    {
+                        Name = "Alpha",
+                        Slots = new List<Slot>
+                        {
+                            new()
+                            {
+                                Name = "SL"
+                            }
+                        }
+                    },
+                    new()
+                    {
+                        Name = "Bravo",
+                        Slots = new List<Slot>
+                        {
+                            new()
+                            {
+                                Name = "SL"
+                            }
+                        }
+                    }
+                }
             }
         };
 
         var specification = MissionSpecification
             .OwnedBy(new User(expectedMission.Owner))
-            .WithTitle("Test title")
-            .WithDescription("Test description")
+            .Titled(expectedMission.Title)
+            .WithDescription(expectedMission.Description)
             .WithModset(ModsetSpecification
-                .ByName("modset name"))
-            .ScheduledAt(DateTimeOffset.Now)
+                .Named(expectedMission.ModsetName))
+            .ScheduledAt(expectedMission.MissionDate.Value)
             .WithSignups(SignupsSpecification
-                .StartingAt(DateTimeOffset.Now.AddDays(1))
-                .ClosingAt(DateTimeOffset.Now.AddDays(1)));
+                .StartingAt(expectedMission.Signups.StartDate)
+                .ClosingAt(expectedMission.Signups.CloseDate)
+                .WithTeam(TeamSpecification
+                    .Named("Alpha")
+                    .WithoutVehicle()
+                    .WithSlot(SlotSpecification
+                        .UnoccupiedWithoutVehicleNamed("SL"))
+                    .AndNoMoreSlots())
+                .AndTeam(TeamSpecification
+                    .Named("Bravo")
+                    .WithoutVehicle()
+                    .WithSlot(SlotSpecification
+                        .UnoccupiedWithoutVehicleNamed("SL"))
+                    .AndNoMoreSlots())
+                .AnoNoMoreTeams());
 
         var mission = specification.Build();
 

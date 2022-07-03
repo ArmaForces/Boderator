@@ -3,7 +3,7 @@ using ArmaForces.Boderator.Core.Modsets.Specification;
 
 namespace ArmaForces.Boderator.Core.Missions.Specifications.Interfaces;
 
-public interface IDescribedMissionSpecification
+public interface IExpectModsetSpecification
 {
-    IModsetSetMissionSpecification WithModset(IBuildingSpecification<Modset> modsetSpecification);
+    IExpectMissionDateSpecification WithModset(IBuildingSpecification<Modset> modsetSpecification);
 }

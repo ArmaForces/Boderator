@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using ArmaForces.Boderator.Core.Infrastructure.Specifications;
 
 namespace ArmaForces.Boderator.Core.Modsets.Specification;
@@ -7,18 +8,29 @@ public class ModsetSpecification : IBuildingSpecification<Modset>
 {
     private ModsetSpecification() { }
 
-    public static IBuildingSpecification<Modset> ByName(string modsetName)
+    private string Name { get; init; } = string.Empty;
+    
+    public static IBuildingSpecification<Modset> Named(string modsetName)
     {
-        return new ModsetSpecification();
+        return new ModsetSpecification
+        {
+            Name = modsetName
+        };
     }
 
     public static IBuildingSpecification<Modset> ByUrl(Uri modsetUrl)
     {
-        return new ModsetSpecification();
+        return new ModsetSpecification
+        {
+            Name = modsetUrl.Segments.Last()
+        };
     }
 
     public Modset Build()
     {
-        return new Modset();
+        return new Modset
+        {
+            Name = Name
+        };
     }
 }

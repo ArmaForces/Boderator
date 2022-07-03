@@ -6,7 +6,7 @@ public record Slot
             
     public string Name { get; init; } = string.Empty;
 
-    public string Vehicle { get; init; } = string.Empty;
+    public string? Vehicle { get; init; }
         
     public string? Occupant { get; init; }
 }

@@ -8,28 +8,28 @@ using ArmaForces.Boderator.Core.Users;
 namespace ArmaForces.Boderator.Core.Missions.Specifications;
 
 public record MissionSpecification :
-    IOwnedMissionSpecification,
-    ITitledMissionSpecification,
-    IDescribedMissionSpecification,
-    IModsetSetMissionSpecification,
-    IScheduledMissionSpecification,
-    IBuildingSpecification<Models.Mission>
+    IExpectMissionTitleSpecification,
+    IExpectMissionDescriptionSpecification,
+    IExpectModsetSpecification,
+    IExpectMissionDateSpecification,
+    IExpectMissionSignupsSpecification,
+    IBuildingSpecification<Mission>
 {
     private MissionSpecification() { }
 
-    public User User { get; private init; } = new();
-    
-    public string Title { get; private init; } = string.Empty;
+    private User User { get; init; } = new();
 
-    public string Description { get; private init; } = string.Empty;
+    private string Title { get; init; } = string.Empty;
 
-    public IBuildingSpecification<Modset>? ModsetSpecification { get; private init; }
-    
-    public DateTimeOffset Time { get; private init; }
-    
-    public IBuildingSpecification<Signups>? SignupsSpecification { get; private init; }
+    private string Description { get; init; } = string.Empty;
 
-    public static IOwnedMissionSpecification OwnedBy(User user)
+    private IBuildingSpecification<Modset>? ModsetSpecification { get; init; }
+
+    private DateTimeOffset Time { get; init; }
+
+    private IBuildingSpecification<Signups>? SignupsSpecification { get; init; }
+
+    public static IExpectMissionTitleSpecification OwnedBy(User user)
     {
         return new MissionSpecification
         {
@@ -37,7 +37,7 @@ public record MissionSpecification :
         };
     }
 
-    public ITitledMissionSpecification WithTitle(string title)
+    public IExpectMissionDescriptionSpecification Titled(string title)
     {
         if (string.IsNullOrEmpty(title))
             throw new ArgumentException("Mission title cannot be null or empty", nameof(title));
@@ -48,7 +48,7 @@ public record MissionSpecification :
         };
     }
 
-    public IDescribedMissionSpecification WithDescription(string description)
+    public IExpectModsetSpecification WithDescription(string description)
     {
         if (string.IsNullOrEmpty(description))
             throw new ArgumentException("Mission title cannot be null or empty", nameof(description));
@@ -59,7 +59,7 @@ public record MissionSpecification :
         };
     }
 
-    public IModsetSetMissionSpecification WithModset(IBuildingSpecification<Modset> modsetSpecification)
+    public IExpectMissionDateSpecification WithModset(IBuildingSpecification<Modset> modsetSpecification)
     {
         if (modsetSpecification is null)
             throw new ArgumentNullException(nameof(modsetSpecification));
@@ -70,7 +70,7 @@ public record MissionSpecification :
         };
     }
 
-    public IScheduledMissionSpecification ScheduledAt(DateTimeOffset dateTime)
+    public IExpectMissionSignupsSpecification ScheduledAt(DateTimeOffset dateTime)
     {
         return this with
         {
@@ -78,7 +78,7 @@ public record MissionSpecification :
         };
     }
 
-    public IBuildingSpecification<Models.Mission> WithSignups(IBuildingSpecification<Signups> signupsSpecification)
+    public IBuildingSpecification<Mission> WithSignups(IBuildingSpecification<Signups> signupsSpecification)
     {
         if (signupsSpecification is null)
             throw new ArgumentNullException(nameof(signupsSpecification));
@@ -89,7 +89,7 @@ public record MissionSpecification :
         };
     }
 
-    public Models.Mission Build()
+    public Mission Build()
         => new()
         {
             Owner = User.ToString(),
