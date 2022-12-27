@@ -70,8 +70,8 @@ public class MissionSpecificationTests
                 .Named(expectedMission.ModsetName))
             .ScheduledAt(expectedMission.MissionDate.Value)
             .WithSignups(SignupsSpecification
-                .StartingAt(expectedMission.Signups.StartDate)
-                .ClosingAt(expectedMission.Signups.CloseDate)
+                .StartingAt(expectedMission.Signups.StartDate.Value)
+                .ClosingAt(expectedMission.Signups.CloseDate.Value)
                 .WithTeam(TeamSpecification
                     .Named("Alpha")
                     .WithoutVehicle()

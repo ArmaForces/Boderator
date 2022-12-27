@@ -9,9 +9,9 @@ public record Signups
 
     public SignupsStatus Status { get; init; } = SignupsStatus.Created;
         
-    public DateTime StartDate { get; init; }
+    public DateTime? StartDate { get; init; }
         
-    public DateTime CloseDate { get; init; }
+    public DateTime? CloseDate { get; init; }
         
     public IReadOnlyList<Team> Teams { get; init; } = new List<Team>();
 }
