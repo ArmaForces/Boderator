@@ -25,6 +25,7 @@ namespace ArmaForces.Boderator.Core.DependencyInjection
         /// <summary>
         /// Adds all interfaces from <paramref name="assembly"/> with single implementation type as scoped service.
         /// Does not replace existing registrations.
+        /// Excludes specification interfaces.
         /// </summary>
         /// <param name="services">Service collection where services will be registered</param>
         /// <param name="assembly">Assembly which will be searched for interfaces and implementations.</param>
@@ -40,6 +41,7 @@ namespace ArmaForces.Boderator.Core.DependencyInjection
                 .Where(x => x.Count() == 1)
                 .Select(x => x.Single())
                 .Where(x => services.IsNotServiceRegistered(x.implementedInterface))
+                .Where(x => x.implementedInterface.IsNotSpecification())
                 .ToList()
                 .ForEach(x => services.AddScoped(x.implementedInterface, x.implementingClass));
 
@@ -51,5 +53,8 @@ namespace ArmaForces.Boderator.Core.DependencyInjection
 
         private static bool IsServiceRegistered(this IServiceCollection services, Type serviceType)
             => services.Any(descriptor => descriptor.ServiceType == serviceType);
+
+        private static bool IsNotSpecification(this Type interfaceType)
+            => !interfaceType.FullName?.Contains("Specification") ?? true;
     }
 }
