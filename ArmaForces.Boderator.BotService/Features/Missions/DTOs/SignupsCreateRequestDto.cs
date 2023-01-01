@@ -17,7 +17,7 @@ public class SignupsCreateRequestDto
     /// Id of the mission for which the signups will be created.
     /// It can't be specified if "mission" is specified.
     /// </summary>
-    [JsonProperty(Required = Required.DisallowNull)]
+    [JsonProperty(Required = Required.DisallowNull, NullValueHandling = NullValueHandling.Ignore)]
     [SwaggerSchema(Nullable = false)]
     public int? MissionId { get; set; }
         
@@ -26,27 +26,27 @@ public class SignupsCreateRequestDto
     /// Mission will be created before creating signups and must be ready for signups creation.
     /// It can't be specified if "missionId" is specified.
     /// </summary>
-    [JsonProperty(Required = Required.DisallowNull)]
+    [JsonProperty(Required = Required.DisallowNull, NullValueHandling = NullValueHandling.Ignore)]
     [SwaggerSchema(Nullable = false)]
     public MissionCreateRequestDto? Mission { get; set; }
 
     /// <summary>
     /// Desired status of signups.
     /// </summary>
-    [JsonProperty(Required = Required.DisallowNull)]
+    [JsonProperty(Required = Required.DisallowNull, NullValueHandling = NullValueHandling.Ignore)]
     [DefaultValue(SignupsStatus.Created)]
     public SignupsStatus SignupsStatus { get; set; } = SignupsStatus.Created;
 
     /// <summary>
     /// Starting date of signups.
     /// </summary>
-    [JsonProperty(Required = Required.DisallowNull)]
+    [JsonProperty(Required = Required.DisallowNull, NullValueHandling = NullValueHandling.Ignore)]
     public DateTime? StartDate { get; set; }
         
     /// <summary>
     /// Closing date of signups.
     /// </summary>
-    [JsonProperty(Required = Required.DisallowNull)]
+    [JsonProperty(Required = Required.DisallowNull, NullValueHandling = NullValueHandling.Ignore)]
     public DateTime? CloseDate { get; set; }
 
     /// <summary>

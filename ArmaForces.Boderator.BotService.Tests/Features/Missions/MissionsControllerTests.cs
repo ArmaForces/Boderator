@@ -57,68 +57,68 @@ namespace ArmaForces.Boderator.BotService.Tests.Features.Missions
 
             result.ShouldBeSuccess(expectedMission);
         }
-    }
 
-    public class CreateMissionValidRequestTestData : TheoryData<MissionCreateRequestDto>
-    {
-        private readonly MissionCreateRequestDto _minimalRequest = new()
+        private class CreateMissionValidRequestTestData : TheoryData<MissionCreateRequestDto>
         {
-            Title = "Test mission title",
-            Owner = "Test mission owner"
-        };
-        
-        public CreateMissionValidRequestTestData()
-        {
-            var testCases = new List<MissionCreateRequestDto>
+            private readonly MissionCreateRequestDto _minimalRequest = new()
             {
-                _minimalRequest,
-                _minimalRequest with
-                {
-                    Description = "Test mission description"
-                },
-                _minimalRequest with
-                {
-                    MissionDate = DateTime.Now.AddHours(-1)
-                },
-                _minimalRequest with
-                {
-                    ModsetName = "Test-mission-modset"
-                },
-                _minimalRequest with
-                {
-                    Description = "Test mission description",
-                    MissionDate = DateTime.Now.AddHours(-1),
-                    ModsetName = "Test-mission-modset"
-                }
+                Title = "Test mission title",
+                Owner = "Test mission owner"
             };
 
-            foreach (var testCase in testCases) Add(testCase);
+            public CreateMissionValidRequestTestData()
+            {
+                var testCases = new List<MissionCreateRequestDto>
+                {
+                    _minimalRequest,
+                    _minimalRequest with
+                    {
+                        Description = "Test mission description"
+                    },
+                    _minimalRequest with
+                    {
+                        MissionDate = DateTime.Now.AddHours(-1)
+                    },
+                    _minimalRequest with
+                    {
+                        ModsetName = "Test-mission-modset"
+                    },
+                    _minimalRequest with
+                    {
+                        Description = "Test mission description",
+                        MissionDate = DateTime.Now.AddHours(-1),
+                        ModsetName = "Test-mission-modset"
+                    }
+                };
+
+                foreach (var testCase in testCases) Add(testCase);
+            }
         }
-    }
-    
-    public class CreateMissionInvalidRequestTestData : TheoryData<MissionCreateRequestDto>
-    {
-        public CreateMissionInvalidRequestTestData()
-        {
-            var testCases = new List<MissionCreateRequestDto>
-            {
-                new()
-                {
-                    Title = "Test mission title without owner"
-                },
-                new()
-                {
-                    Owner = "Test mission owner without title"
-                },
-                new()
-                {
-                    Title = "Test mission title",
-                    Owner = "Test mission owner",
-                    ModsetName = "Modset name with whitespace characters"
-                }
-            };
 
-            foreach (var testCase in testCases) Add(testCase);
+        private class CreateMissionInvalidRequestTestData : TheoryData<MissionCreateRequestDto>
+        {
+            public CreateMissionInvalidRequestTestData()
+            {
+                var testCases = new List<MissionCreateRequestDto>
+                {
+                    new()
+                    {
+                        Title = "Test mission title without owner"
+                    },
+                    new()
+                    {
+                        Owner = "Test mission owner without title"
+                    },
+                    new()
+                    {
+                        Title = "Test mission title",
+                        Owner = "Test mission owner",
+                        ModsetName = "Modset name with whitespace characters"
+                    }
+                };
+
+                foreach (var testCase in testCases) Add(testCase);
+            }
         }
     }
 }

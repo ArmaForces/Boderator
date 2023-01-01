@@ -19,12 +19,14 @@ namespace ArmaForces.Boderator.BotService.Features.Missions;
 [Produces(MediaTypeNames.Application.Json)]
 public class SignupsController : ControllerBase
 {
+    private readonly ISignupsCommandService _signupsCommandService;
     private readonly ISignupsQueryService _signupsQueryService;
 
     /// <inheritdoc />
-    public SignupsController(ISignupsQueryService signupsQueryService)
+    public SignupsController(ISignupsQueryService signupsQueryService, ISignupsCommandService signupsCommandService)
     {
         _signupsQueryService = signupsQueryService;
+        _signupsCommandService = signupsCommandService;
     }
 
     /// <summary>Create Signups</summary>
@@ -36,8 +38,12 @@ public class SignupsController : ControllerBase
     [HttpPost(Name = "CreateSignups")]
     [SwaggerResponse(StatusCodes.Status201Created, "Signups created")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "Request is invalid")]
-    public ActionResult<long> CreateSignups([FromBody] SignupsCreateRequestDto request)
-        => throw new NotImplementedException();
+    public async Task<ActionResult<SignupsDto>> CreateSignups([FromBody] SignupsCreateRequestDto request)
+        => await _signupsCommandService.CreateSignups(SignupsMapper.Map(request))
+            .Map(SignupsMapper.Map)
+            .Match<ActionResult<SignupsDto>, SignupsDto>(
+                onSuccess: signups => Created(signups.SignupsId.ToString(), signups),
+                onFailure: error => BadRequest(error));
 
     /// <summary>Update Signups</summary>
     /// <remarks>Updates signups with given <paramref name="signupsId"/>.</remarks>
