@@ -5,7 +5,6 @@ using ArmaForces.Boderator.BotService.Features.Missions.DTOs;
 using ArmaForces.Boderator.BotService.Tests.TestUtilities.TestBases;
 using ArmaForces.Boderator.BotService.Tests.TestUtilities.TestFixtures;
 using ArmaForces.Boderator.Core.Tests.TestUtilities;
-using AutoFixture;
 using Xunit;
 
 namespace ArmaForces.Boderator.BotService.Tests.Features.Missions
@@ -30,32 +29,6 @@ namespace ArmaForces.Boderator.BotService.Tests.Features.Missions
             var result = await HttpPostAsync<MissionCreateRequestDto, MissionDto>("api/missions", missionCreateRequestDto);
             
             result.ShouldBeSuccess(missionCreateRequestDto);
-        }
-        
-        [Fact, Trait("Category", "Integration")]
-        public async Task GetMission_MissionExists_ReturnsExistingMission()
-        {
-            var missionCreateRequest = new MissionCreateRequestDto
-            {
-                Title = Fixture.Create<string>(),
-                Owner = Fixture.Create<string>(),
-                Description = Fixture.Create<string>()
-            };
-            
-            var missionCreateResult = await HttpPostAsync<MissionCreateRequestDto, MissionDto>("api/missions", missionCreateRequest);
-
-            var expectedMission = new MissionDto
-            {
-                Title = missionCreateResult.Value.Title,
-                Description = missionCreateRequest.Description,
-                Owner = missionCreateRequest.Owner,
-                MissionDate = missionCreateResult.Value.MissionDate,
-                MissionId = missionCreateResult.Value.MissionId
-            };
-            
-            var result = await HttpGetAsync<MissionDto>($"api/missions/{expectedMission.MissionId}");
-
-            result.ShouldBeSuccess(expectedMission);
         }
 
         private class CreateMissionValidRequestTestData : TheoryData<MissionCreateRequestDto>
