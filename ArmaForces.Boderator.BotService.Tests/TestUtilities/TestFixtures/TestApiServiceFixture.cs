@@ -18,6 +18,8 @@ namespace ArmaForces.Boderator.BotService.Tests.TestUtilities.TestFixtures
 
         public HttpClient HttpClient { get; }
 
+        internal IServiceProvider ServiceProvider => _host.Services;
+
         public TestApiServiceFixture()
         {
             _socketsHttpHandler = new SocketsHttpHandler();
