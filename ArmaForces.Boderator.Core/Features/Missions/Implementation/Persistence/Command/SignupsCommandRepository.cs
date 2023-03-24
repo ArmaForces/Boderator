@@ -21,7 +21,7 @@ internal class SignupsCommandRepository : ISignupsCommandRepository
 
         if (signupsEntityEntry is null) return Result.Failure<Signups>("Failure creating signups.");
 
-        var mission = await _context.Missions.AsNoTracking().SingleOrDefaultAsync(x => x.MissionId == missionId);
+        var mission = await _context.Missions.SingleOrDefaultAsync(x => x.MissionId == missionId);
         if (mission is null) return Result.Failure<Signups>($"Mission with ID {missionId} doesn't exist.");
         
         var updatedMission = mission with
@@ -29,6 +29,7 @@ internal class SignupsCommandRepository : ISignupsCommandRepository
             Signups = signupsEntityEntry.Entity
         };
 
+        _context.Entry(mission).State = EntityState.Detached;
         _context.Attach(updatedMission);
         _context.Entry(updatedMission).Reference(x => x.Signups).IsModified = true;
 

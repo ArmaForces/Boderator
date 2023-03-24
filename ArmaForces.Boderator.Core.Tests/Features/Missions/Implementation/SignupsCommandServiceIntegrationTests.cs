@@ -39,7 +39,7 @@ public class SignupsCommandServiceIntegrationTests : DatabaseTestBase
         
         var expectedSignups = new Signups()
         {
-            SignupsId = missionCreationResult.Value.MissionId,
+            SignupsId = 1,
             Status = request.SignupsStatus,
             StartDate = request.StartDate,
             CloseDate = request.CloseDate,
@@ -47,6 +47,25 @@ public class SignupsCommandServiceIntegrationTests : DatabaseTestBase
         };
         
         await _missionsDbHelper.CreateTestMission();
+        
+        var result = await _signupsCommandService.CreateSignups(request);
+        
+        result.ShouldBeSuccess(expectedSignups);
+    }
+    
+    [Fact, Trait("Category", "Integration")]
+    public async Task CreateSignups_ValidCreateRequestWithMission_SignupsAndMissionCreatedAndReturned()
+    {
+        var request = WithMissionCreation(PrepareRequest());
+        
+        var expectedSignups = new Signups
+        {
+            SignupsId = 1,
+            Status = request.SignupsStatus,
+            StartDate = request.StartDate,
+            CloseDate = request.CloseDate,
+            Teams = request.Teams
+        };
         
         var result = await _signupsCommandService.CreateSignups(request);
         
@@ -76,6 +95,17 @@ public class SignupsCommandServiceIntegrationTests : DatabaseTestBase
             StartDate = fixtureSignups.StartDate,
             CloseDate = fixtureSignups.CloseDate,
             Teams = fixtureSignups.Teams.ToList()
+        };
+    }
+
+    private static SignupsCreateRequest WithMissionCreation(SignupsCreateRequest signupsCreateRequest)
+    {
+        var missionCreateRequest = MissionsFixture.PrepareCreateRequest();
+
+        return signupsCreateRequest with
+        {
+            MissionId = null,
+            MissionCreateRequest = missionCreateRequest
         };
     }
 }

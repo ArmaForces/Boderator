@@ -12,6 +12,23 @@ namespace ArmaForces.Boderator.Core.Tests.DependencyInjection
     {
         [Fact]
         [Trait("Category", "Unit")]
+        public void AddOrReplaceSingleton()
+        {
+            var replacedInstance = new Test1();
+            
+            var serviceProvider = new ServiceCollection()
+                .AddSingleton<ITest1>(replacedInstance)
+                .AddOrReplaceSingleton<ITest1, Test1>()
+                .BuildServiceProvider();
+
+            using (new AssertionScope())
+            {
+                serviceProvider.GetService<ITest1>().Should().NotBe(replacedInstance);
+            }
+        }
+        
+        [Fact]
+        [Trait("Category", "Unit")]
         public void AutoAddInterfacesAsScoped_EmptyCollection_RegistersOnlyInterfacesWithOneImplementation()
         {
             var serviceProvider = new ServiceCollection()
