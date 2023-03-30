@@ -9,7 +9,7 @@ namespace ArmaForces.Boderator.Core.Tests.TestUtilities;
 public class DatabaseTestBase : IDisposable
 {
     protected readonly IServiceProvider ServiceProvider = new ServiceCollection()
-        .AddBoderatorCore(_ => TestDatabaseConstants.TestConnectionString)
+        .AddBoderatorCore(_ => TestDatabaseConstants.TestSqlServerConnectionString)
         .AddScoped<MissionsDbHelper>()
         .AddScoped<SignupsDbHelper>()
         .BuildServiceProvider();
@@ -18,5 +18,9 @@ public class DatabaseTestBase : IDisposable
 
     protected DatabaseTestBase() { }
 
-    public void Dispose() => DbContextTransaction?.Dispose();
+    public void Dispose()
+    {
+        DbContextTransaction?.Rollback();
+        DbContextTransaction?.Dispose();
+    }
 }

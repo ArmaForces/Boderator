@@ -7,7 +7,7 @@ namespace ArmaForces.Boderator.BotService.Tests.TestUtilities
     {
         public BoderatorConfiguration CreateConfiguration() => new BoderatorConfiguration
         {
-            ConnectionString = TestDatabaseConstants.TestConnectionString,
+            ConnectionString = TestDatabaseConstants.TestSqlServerConnectionString,
             DiscordToken = string.Empty
         };
     }

@@ -17,6 +17,8 @@ namespace ArmaForces.Boderator.Core.DependencyInjection
             Func<IServiceProvider, string> connectionStringFactory)
             where T : DbContext
             => services.AddDbContext<T>((serviceProvider, options) =>
-                options.UseSqlite(connectionStringFactory(serviceProvider)));
+                options
+                    .UseSqlServer(connectionStringFactory(serviceProvider)));
+                    //.UseSqlite(connectionStringFactory(serviceProvider)));
     }
 }
