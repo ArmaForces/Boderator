@@ -31,15 +31,14 @@ public class SignupsCommandServiceIntegrationTests : DatabaseTestBase
     [Fact, Trait("Category", "Integration")]
     public async Task CreateSignups_ValidCreateRequest_SignupsCreatedAndReturned()
     {
-        var request = PrepareRequest();
-
         var missionCreationResult = await _missionCommandService.CreateMission(MissionsFixture.PrepareCreateRequest());
         
         missionCreationResult.ShouldBeSuccess();
         
+        var request = PrepareRequest(missionCreationResult.Value.MissionId);
+        
         var expectedSignups = new Signups()
         {
-            SignupsId = 1,
             Status = request.SignupsStatus,
             StartDate = request.StartDate,
             CloseDate = request.CloseDate,
@@ -50,7 +49,7 @@ public class SignupsCommandServiceIntegrationTests : DatabaseTestBase
         
         var result = await _signupsCommandService.CreateSignups(request);
         
-        result.ShouldBeSuccess(expectedSignups);
+        result.ShouldBeSuccess(expectedSignups, opt => opt.Excluding(x => x.SignupsId));
     }
     
     [Fact, Trait("Category", "Integration")]
@@ -60,7 +59,6 @@ public class SignupsCommandServiceIntegrationTests : DatabaseTestBase
         
         var expectedSignups = new Signups
         {
-            SignupsId = 1,
             Status = request.SignupsStatus,
             StartDate = request.StartDate,
             CloseDate = request.CloseDate,
@@ -69,7 +67,7 @@ public class SignupsCommandServiceIntegrationTests : DatabaseTestBase
         
         var result = await _signupsCommandService.CreateSignups(request);
         
-        result.ShouldBeSuccess(expectedSignups);
+        result.ShouldBeSuccess(expectedSignups, opt => opt.Excluding(x => x.SignupsId));
     }
     
     // [Fact, Trait("Category", "Integration")]

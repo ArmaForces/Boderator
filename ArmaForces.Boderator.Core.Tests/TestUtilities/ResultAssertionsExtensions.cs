@@ -1,5 +1,7 @@
+using System;
 using CSharpFunctionalExtensions;
 using FluentAssertions;
+using FluentAssertions.Equivalency;
 using FluentAssertions.Execution;
 
 namespace ArmaForces.Boderator.Core.Tests.TestUtilities
@@ -86,6 +88,39 @@ namespace ArmaForces.Boderator.Core.Tests.TestUtilities
             if (result.IsSuccess)
             {
                 result.Value.Should().BeEquivalentTo(expectedValue);
+            }
+            else
+            {
+                result.IsSuccess.Should().BeTrue();
+                result.Error.Should().BeNull();
+            }
+        }
+        
+        public static void ShouldBeSuccess<T1, T2>(
+            this Result<T1> result,
+            T2 expectedValue,
+            Func<EquivalencyAssertionOptions<T2>,EquivalencyAssertionOptions<T2>> config)
+        {
+            using var scope = new AssertionScope();
+
+            if (result.IsSuccess)
+            {
+                result.Value.Should().BeEquivalentTo(expectedValue, config);
+            }
+            else
+            {
+                result.IsSuccess.Should().BeTrue();
+                result.Error.Should().BeNull();
+            }
+        }
+        
+        public static void ShouldBeSuccess<T1>(this Result<T1> result, Action<T1> valueAssertion)
+        {
+            using var scope = new AssertionScope();
+
+            if (result.IsSuccess)
+            {
+                valueAssertion(result.Value);
             }
             else
             {

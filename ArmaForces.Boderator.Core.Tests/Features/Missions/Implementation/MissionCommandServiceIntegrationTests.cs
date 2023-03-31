@@ -34,7 +34,6 @@ public class MissionCommandServiceIntegrationTests : DatabaseTestBase
 
         var expectedMission = new Mission
         {
-            MissionId = 1,
             Title = request.Title,
             Description = request.Description,
             Owner = request.Owner,
@@ -44,7 +43,7 @@ public class MissionCommandServiceIntegrationTests : DatabaseTestBase
         
         var result = await _missionCommandService.CreateMission(request);
         
-        result.ShouldBeSuccess(expectedMission);
+        result.ShouldBeSuccess(expectedMission, opt => opt.Excluding(x => x.MissionId));
     }
     
     [Fact, Trait("Category", "Integration")]

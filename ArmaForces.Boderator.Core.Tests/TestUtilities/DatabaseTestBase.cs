@@ -9,7 +9,7 @@ namespace ArmaForces.Boderator.Core.Tests.TestUtilities;
 public class DatabaseTestBase : IDisposable
 {
     protected readonly IServiceProvider ServiceProvider = new ServiceCollection()
-        .AddBoderatorCore(_ => TestDatabaseConstants.TestSqlServerConnectionString)
+        .AddBoderatorCore(_ => TestDatabaseConstants.TestDbConnectionString)
         .AddScoped<MissionsDbHelper>()
         .AddScoped<SignupsDbHelper>()
         .BuildServiceProvider();

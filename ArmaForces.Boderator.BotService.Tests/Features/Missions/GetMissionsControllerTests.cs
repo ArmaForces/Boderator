@@ -7,6 +7,7 @@ using ArmaForces.Boderator.BotService.Tests.TestUtilities.TestFixtures;
 using ArmaForces.Boderator.Core.Tests.TestUtilities;
 using AutoFixture;
 using CSharpFunctionalExtensions;
+using FluentAssertions;
 using Xunit;
 
 namespace ArmaForces.Boderator.BotService.Tests.Features.Missions;
@@ -63,7 +64,7 @@ public class GetMissionsControllerTests : ApiTestBase
             
         var result = await HttpGetAsync<List<MissionDto>>($"api/missions");
 
-        result.ShouldBeSuccess(expectedMissions);
+        result.ShouldBeSuccess(x => x.Should().Contain(expectedMissions));
     }
 
     private async Task<List<Result<(MissionDto createdMission, MissionCreateRequestDto createRequest)>>> CreateSomeMissions(int count = 1)
