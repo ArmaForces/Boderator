@@ -75,6 +75,9 @@ public static class SignupsMapper
                 MissionDate = request.Mission.MissionDate,
                 ModsetName = request.Mission.ModsetName
             } : null,
+            StartDate = request.StartDate,
+            CloseDate = request.CloseDate,
+            SignupsStatus = request.SignupsStatus,
             Teams = Map(request.Teams)
         };
     }

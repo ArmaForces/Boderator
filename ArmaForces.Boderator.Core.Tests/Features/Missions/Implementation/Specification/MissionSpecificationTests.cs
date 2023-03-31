@@ -10,6 +10,7 @@ using Xunit;
 
 namespace ArmaForces.Boderator.Core.Tests.Features.Missions.Implementation.Specification;
 
+[Trait("Category", "Unit")]
 public class MissionSpecificationTests
 {
     private readonly Fixture _fixture = new();
