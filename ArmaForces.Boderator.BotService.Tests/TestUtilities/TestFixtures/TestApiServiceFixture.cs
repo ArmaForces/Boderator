@@ -1,54 +1,30 @@
 using System;
 using System.Net.Http;
-using ArmaForces.Boderator.BotService.Configuration;
-using ArmaForces.Boderator.Core.DependencyInjection;
-using ArmaForces.Boderator.Core.Tests.TestUtilities;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Moq;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace ArmaForces.Boderator.BotService.Tests.TestUtilities.TestFixtures
 {
+    // This class is created by XUnit test runner once for TestApiCollection
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class TestApiServiceFixture : IDisposable
     {
-        private const int Port = 43421;
-        private readonly SocketsHttpHandler _socketsHttpHandler;
-        private readonly IHost _host;
+        private readonly WebApplicationFactory<Program> _testAppFactory;
 
         public HttpClient HttpClient { get; }
 
-        internal IServiceProvider ServiceProvider => _host.Services;
-
+        internal IServiceProvider ServiceProvider => _testAppFactory.Services;
+        
         public TestApiServiceFixture()
         {
-            _socketsHttpHandler = new SocketsHttpHandler();
-            HttpClient = new HttpClient(_socketsHttpHandler)
-            {
-                BaseAddress = new Uri($"http://localhost:{Port}")
-            };
-
-            _host = Host.CreateDefaultBuilder()
-                .ConfigureWebHostDefaults(ConfigureWebBuilder())
-                .Build();
-
-            _host.Start();
+            _testAppFactory = new TestApplicationFactory();
+            HttpClient = _testAppFactory.CreateClient();
         }
 
         public void Dispose()
         {
             HttpClient.Dispose();
-            _socketsHttpHandler.Dispose();
-            _host.Dispose();
+            _testAppFactory.Dispose();
             GC.SuppressFinalize(this);
         }
-
-        private static Action<IWebHostBuilder> ConfigureWebBuilder() => webBuilder =>
-        {
-            webBuilder.UseStartup<Startup>();
-            webBuilder.ConfigureServices(
-                x => x.AddOrReplaceSingleton(new TestConfigurationFactory().CreateConfiguration()));
-            webBuilder.UseKestrel(x => x.ListenLocalhost(Port));
-        };
     }
 }

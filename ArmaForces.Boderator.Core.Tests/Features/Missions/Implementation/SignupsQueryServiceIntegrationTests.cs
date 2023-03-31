@@ -21,9 +21,6 @@ public class SignupsQueryServiceIntegrationTests : DatabaseTestBase
         _missionsDbHelper = ServiceProvider.GetRequiredService<MissionsDbHelper>();
         _signupsDbHelper = ServiceProvider.GetRequiredService<SignupsDbHelper>();
         _signupsQueryService = ServiceProvider.GetRequiredService<ISignupsQueryService>();
-
-        var missionContext = ServiceProvider.GetRequiredService<MissionContext>();
-        DbContextTransaction = missionContext.Database.BeginTransaction();
     }
     
     [Fact, Trait("Category", "Integration")]

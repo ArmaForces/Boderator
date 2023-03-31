@@ -23,7 +23,7 @@ public class LegacySignupsImportTest : ApiTestBase
     {
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test")]
     public async Task ImportLegacySignups_OnlyMissionData_Imported()
     {
         var legacyMissionsResult = await HttpGetAsync<IEnumerable<WebMission>>(MissionsResource);

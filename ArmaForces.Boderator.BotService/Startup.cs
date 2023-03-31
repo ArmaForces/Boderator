@@ -4,7 +4,9 @@ using System.Text.Json.Serialization;
 using ArmaForces.Boderator.BotService.Configuration;
 using ArmaForces.Boderator.BotService.Documentation;
 using ArmaForces.Boderator.BotService.Features.DiscordClient.Infrastructure.DependencyInjection;
+using ArmaForces.Boderator.BotService.Features.Health;
 using ArmaForces.Boderator.BotService.Filters;
+using ArmaForces.Boderator.BotService.Middleware;
 using ArmaForces.Boderator.Core.DependencyInjection;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.Builder;
@@ -16,7 +18,7 @@ using Microsoft.OpenApi.Models;
 
 namespace ArmaForces.Boderator.BotService
 {
-    public class Startup
+    internal class Startup
     {
         private OpenApiInfo OpenApiConfiguration { get; } = new()
         {
@@ -41,7 +43,7 @@ namespace ArmaForces.Boderator.BotService
             services.AutoAddInterfacesAsScoped(typeof(Startup).Assembly);
 
             services.AddMvc(options => options
-                .Filters.Add(new ExceptionFilter()))
+                    .Filters.Add(new ExceptionFilter()))
                 .AddJsonOptions(opt =>
                 {
                     opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -58,12 +60,14 @@ namespace ArmaForces.Boderator.BotService
                 app.UseDeveloperExceptionPage();
                 app.AddDocumentation(OpenApiConfiguration);
             }
-
+            
             app.UseHttpsRedirection();
 
             app.UseRouting();
 
             app.UseAuthorization();
+            
+            app.UseMiddleware<TransactionMiddleware>();
 
             app.UseEndpoints(endpoints =>
             {

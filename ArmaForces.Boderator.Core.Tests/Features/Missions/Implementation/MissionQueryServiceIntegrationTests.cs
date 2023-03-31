@@ -21,12 +21,9 @@ public class MissionQueryServiceIntegrationTests : DatabaseTestBase
     {
         _missionsDbHelper = ServiceProvider.GetRequiredService<MissionsDbHelper>();
         _missionQueryService = ServiceProvider.GetRequiredService<IMissionQueryService>();
-
-        var missionContext = ServiceProvider.GetRequiredService<MissionContext>();
-        DbContextTransaction = missionContext.Database.BeginTransaction();
     }
     
-    [Fact(Skip = "TODO: Un-skip when transactions are solved for SQL Server.")]
+    [Fact]
     public async Task GetMissions_NoMissionsInDatabase_ReturnsEmptyList()
     {
         var result = await _missionQueryService.GetMissions();

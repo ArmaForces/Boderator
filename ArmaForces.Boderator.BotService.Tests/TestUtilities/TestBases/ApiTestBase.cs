@@ -28,16 +28,15 @@ namespace ArmaForces.Boderator.BotService.Tests.TestUtilities.TestBases
         
         protected IServiceProvider Provider { get; }
 
-        public void Dispose() => TransactionScope?.Dispose();// ?? DbContextTransaction?.Dispose();
-        // private IDbContextTransaction? DbContextTransaction { get; }
+        public void Dispose() => TransactionScope?.Dispose();
         private TransactionScope? TransactionScope { get; }
 
         protected ApiTestBase(TestApiServiceFixture testApi)
         {
             _httpClient = testApi.HttpClient;
             Provider = testApi.ServiceProvider;
-            
-            // var missionContext = Provider.GetRequiredService<MissionContext>();
+
+            // TODO: This doesn't and probably won't work
             TransactionScope = new TransactionScope(
                 TransactionScopeOption.Required,
                 new TransactionOptions
@@ -45,7 +44,6 @@ namespace ArmaForces.Boderator.BotService.Tests.TestUtilities.TestBases
                     IsolationLevel = IsolationLevel.ReadCommitted
                 },
                 TransactionScopeAsyncFlowOption.Enabled);
-            // DbContextTransaction = missionContext.Database.BeginTransaction();
         }
 
         protected async Task<Result<T>> HttpGetAsync<T>(string path)

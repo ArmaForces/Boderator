@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Transactions;
 using ArmaForces.Boderator.Core.DependencyInjection;
 using ArmaForces.Boderator.Core.Tests.Features.Missions.Helpers;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -14,13 +15,24 @@ public class DatabaseTestBase : IDisposable
         .AddScoped<SignupsDbHelper>()
         .BuildServiceProvider();
 
-    protected IDbContextTransaction? DbContextTransaction { get; init; }
+    // protected IDbContextTransaction? DbContextTransaction { get; init; }
+    private TransactionScope? TransactionScope { get; }
 
-    protected DatabaseTestBase() { }
+    protected DatabaseTestBase()
+    {
+        TransactionScope = new TransactionScope(
+            TransactionScopeOption.Required,
+            new TransactionOptions
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted
+            },
+            TransactionScopeAsyncFlowOption.Enabled);
+    }
 
     public void Dispose()
     {
-        DbContextTransaction?.Rollback();
-        DbContextTransaction?.Dispose();
+        TransactionScope?.Dispose();
+        // DbContextTransaction?.Rollback();
+        // DbContextTransaction?.Dispose();
     }
 }

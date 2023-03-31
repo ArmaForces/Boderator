@@ -22,9 +22,6 @@ public class MissionCommandServiceIntegrationTests : DatabaseTestBase
         _missionsDbHelper = ServiceProvider.GetRequiredService<MissionsDbHelper>();
         _missionQueryService = ServiceProvider.GetRequiredService<IMissionQueryService>();
         _missionCommandService = ServiceProvider.GetRequiredService<IMissionCommandService>();
-
-        var missionContext = ServiceProvider.GetRequiredService<MissionContext>();
-        DbContextTransaction = missionContext.Database.BeginTransaction();
     }
     
     [Fact, Trait("Category", "Integration")]

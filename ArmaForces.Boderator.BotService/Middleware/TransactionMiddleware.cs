@@ -1,14 +1,38 @@
 ﻿using System.Threading.Tasks;
+using System.Transactions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ArmaForces.Boderator.BotService.Middleware
 {
-    public class TransactionMiddleware : IMiddleware
+    internal class TransactionMiddleware
     {
-        public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+        private readonly RequestDelegate _next;
+
+        public TransactionMiddleware(RequestDelegate next)
         {
-            // context.RequestServices.GetRequiredService()
+            _next = next;
+        }
+        
+        public async Task InvokeAsync(HttpContext context)
+        {
+            if (context.Request.Method != "GET")
+            {
+                using var transaction = new TransactionScope(
+                    TransactionScopeOption.Required,
+                    new TransactionOptions
+                    {
+                        IsolationLevel = IsolationLevel.ReadCommitted
+                    },
+                    TransactionScopeAsyncFlowOption.Enabled);
+
+                await _next.Invoke(context);
+
+                transaction.Complete();
+            }
+            else
+            {
+                await _next.Invoke(context);
+            }
         }
     }
 }
