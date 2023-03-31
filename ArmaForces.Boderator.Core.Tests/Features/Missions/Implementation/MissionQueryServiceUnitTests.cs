@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ArmaForces.Boderator.Core.Common.Specifications;
 using ArmaForces.Boderator.Core.Missions.Implementation;
 using ArmaForces.Boderator.Core.Missions.Implementation.Persistence.Query;
 using ArmaForces.Boderator.Core.Missions.Models;
@@ -42,7 +43,7 @@ public class MissionQueryServiceUnitTests
     {
         var missionQueryRepositoryMock = new Mock<IMissionQueryRepository>();
         missionQueryRepositoryMock
-            .Setup(x => x.GetMissions())
+            .Setup(x => x.GetMissions(It.IsAny<IQuerySpecification<Mission>?>()))
             .Returns(Task.FromResult(missions.ToList()));
 
         return missionQueryRepositoryMock.Object;

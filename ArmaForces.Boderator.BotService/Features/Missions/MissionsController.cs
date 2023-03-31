@@ -4,7 +4,9 @@ using System.Net.Mime;
 using System.Threading.Tasks;
 using ArmaForces.Boderator.BotService.Features.Missions.DTOs;
 using ArmaForces.Boderator.BotService.Features.Missions.Mappers;
+using ArmaForces.Boderator.Core.Common.Specifications;
 using ArmaForces.Boderator.Core.Missions;
+using ArmaForces.Boderator.Core.Missions.Models;
 using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -69,15 +71,25 @@ public class MissionsController : Controller
 
     /// <summary>Get Missions</summary>
     /// <remarks>Retrieves missions satisfying query parameters.</remarks>
+    /// <param name="after">Include only missions after given date. Missions without a date are treated as always after.</param>
+    /// <param name="before">Include only missions before given date.</param>
+    /// <param name="owner">Include missions only by given user.</param>
     [HttpGet(Name = "GetMissions")]
     [SwaggerResponse(StatusCodes.Status200OK, "Missions retrieved")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "Request is invalid")]
-    public async Task<ActionResult<List<MissionDto>>> GetMissions()
-        => await _missionQueryService.GetMissions()
+    public async Task<ActionResult<List<MissionDto>>> GetMissions(
+        [FromQuery] DateTime? after = null,
+        [FromQuery] DateTime? before = null,
+        [FromQuery] string? owner = null)
+    {
+        var query = new MissionQuerySpecification(after, before, owner);
+
+        return await _missionQueryService.GetMissions(query)
             .Map(MissionMapper.Map)
             .Match<ActionResult<List<MissionDto>>, List<MissionDto>>(
                 onSuccess: missions => Ok(missions),
                 onFailure: error => BadRequest(error));
+    }
 
     /// <summary>Get Mission</summary>
     /// <remarks>Retrieves mission with given <paramref name="missionId"/>.</remarks>

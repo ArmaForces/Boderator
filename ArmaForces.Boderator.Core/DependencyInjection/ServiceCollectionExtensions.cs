@@ -55,6 +55,6 @@ namespace ArmaForces.Boderator.Core.DependencyInjection
             => services.Any(descriptor => descriptor.ServiceType == serviceType);
 
         private static bool IsNotSpecification(this Type interfaceType)
-            => !interfaceType.FullName?.Contains("Specification") ?? true;
+            => !interfaceType.FullName?.Contains("Specification") ?? !interfaceType.Name.Contains("Specification");
     }
 }

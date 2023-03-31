@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using ArmaForces.Boderator.Core.Common.Specifications;
 using ArmaForces.Boderator.Core.Missions.Implementation.Persistence;
 using ArmaForces.Boderator.Core.Missions.Implementation.Persistence.Query;
 using ArmaForces.Boderator.Core.Missions.Models;
@@ -20,6 +21,6 @@ internal class MissionQueryService : IMissionQueryService
         => await _missionQueryRepository.GetMission(missionId)
            ?? Result.Failure<Mission>($"Mission with ID {missionId} does not exist.");
 
-    public async Task<Result<List<Mission>>> GetMissions()
-        => await _missionQueryRepository.GetMissions();
+    public async Task<Result<List<Mission>>> GetMissions(IQuerySpecification<Mission>? query = null)
+        => await _missionQueryRepository.GetMissions(query);
 }

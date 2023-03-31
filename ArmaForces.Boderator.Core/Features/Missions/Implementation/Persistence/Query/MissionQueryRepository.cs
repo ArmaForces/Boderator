@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using ArmaForces.Boderator.Core.Common.Specifications;
 using ArmaForces.Boderator.Core.Missions.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +20,9 @@ internal class MissionQueryRepository : IMissionQueryRepository
     public async Task<Mission?> GetMission(long missionId)
         => await _context.Missions.FindAsync(missionId);
 
-    public async Task<List<Mission>> GetMissions()
-        => await _context.Missions.ToListAsync();
+    public async Task<List<Mission>> GetMissions(IQuerySpecification<Mission>? query = null)
+    {
+        return await SpecificationEvaluator<Mission>.GetQuery(_context.Set<Mission>().AsQueryable(), query ?? new MissionQuerySpecification())
+            .ToListAsync();
+    }
 }

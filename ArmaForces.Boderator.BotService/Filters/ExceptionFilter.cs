@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Newtonsoft.Json;
 
 namespace ArmaForces.Boderator.BotService.Filters;
 
@@ -17,6 +18,7 @@ public class ExceptionFilter : IExceptionFilter, IAsyncExceptionFilter
     {
         if (context.Exception is ArgumentNullException) HandleValidationError(context);
         if (context.Exception is NotImplementedException) HandleNotImplemented(context);
+        if (context.ExceptionHandled is false) HandleOtherException(context);
     }
 
     private static void HandleNotImplemented(ExceptionContext context)
@@ -34,6 +36,23 @@ public class ExceptionFilter : IExceptionFilter, IAsyncExceptionFilter
         };
 
         context.Result = new BadRequestObjectResult(error);
+        context.ExceptionHandled = true;
+    }
+
+    private static void HandleOtherException(ExceptionContext context)
+    {
+        var error = new
+        {
+            Message = "Internal Server Error",
+            Details = context.Exception.Message,
+            Timestamp = DateTimeOffset.Now
+        };
+
+        context.Result = new ContentResult
+        {
+            Content = JsonConvert.SerializeObject(error),
+            StatusCode = 500
+        };
         context.ExceptionHandled = true;
     }
 }
