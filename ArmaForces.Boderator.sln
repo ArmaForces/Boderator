@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ArmaForces.Boderator.BotSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArmaForces.Boderator.Core.Tests", "ArmaForces.Boderator.Core.Tests\ArmaForces.Boderator.Core.Tests.csproj", "{7DE1D733-EBE7-4800-A5E2-6F0425EC93E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AttendanceExtractor", "AttendanceExtractor\AttendanceExtractor.csproj", "{1209FD95-80F1-4FBF-8251-387A85A7E203}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArmaForces.R3ReplaysConverter", "ArmaForces.R3ReplaysConverter\ArmaForces.R3ReplaysConverter.csproj", "{35C5A991-9DF3-4676-95EE-1E5496ED7155}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{7DE1D733-EBE7-4800-A5E2-6F0425EC93E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7DE1D733-EBE7-4800-A5E2-6F0425EC93E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7DE1D733-EBE7-4800-A5E2-6F0425EC93E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1209FD95-80F1-4FBF-8251-387A85A7E203}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1209FD95-80F1-4FBF-8251-387A85A7E203}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1209FD95-80F1-4FBF-8251-387A85A7E203}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1209FD95-80F1-4FBF-8251-387A85A7E203}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35C5A991-9DF3-4676-95EE-1E5496ED7155}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35C5A991-9DF3-4676-95EE-1E5496ED7155}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35C5A991-9DF3-4676-95EE-1E5496ED7155}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35C5A991-9DF3-4676-95EE-1E5496ED7155}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
