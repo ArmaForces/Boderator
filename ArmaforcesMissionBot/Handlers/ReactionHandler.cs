@@ -5,15 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Timers;
 using ArmaforcesMissionBot.Helpers;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static ArmaforcesMissionBotSharedClasses.Mission;
-using Microsoft.CodeAnalysis.Differencing;
-using CSharpFunctionalExtensions;
+
 
 namespace ArmaforcesMissionBot.Handlers
 {
@@ -57,118 +53,15 @@ namespace ArmaforcesMissionBot.Handlers
 
         private async Task HandleReactionAdded(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && _config.RoleAssignChannel == channel.Id)
-            {
-                var fullMessage = await channel.GetMessageAsync(message.Id) as IUserMessage;
-
-                var messageDescription = fullMessage.Embeds.Single().Description;
-                ulong rank;
-                var reactionsMatches = MiscHelper.GetRankArrayMatchesFromText(messageDescription);
-                var rankForEmoji = reactionsMatches.Find(x => x.Item1 == reaction.Emote.ToString());
-                
-                try
-                {
-                    string regexPattern = @"\<\@\&([0-9]+)\>";
-                    var rankMatches = Regex.Matches(rankForEmoji.Item2, regexPattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft).First().ToString();
-                    rank = ulong.Parse(Regex.Matches(rankMatches, "[0-9]+", RegexOptions.IgnoreCase | RegexOptions.RightToLeft).First().Value);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Parsing ranks failed.");
-                    return;
-                }
-
-                try
-                {
-                    var role = (channel as SocketGuildChannel).Guild.GetRole(rank);
-
-                    await (reaction.User.Value as SocketGuildUser).AddRoleAsync(role);
-
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Adding rank failed.");
-                }
-
-                return;
-            }
-
-
             var signups = _services.GetService<SignupsData>();
 
-            var reactionStringAnimatedVersion = reaction.Emote.ToString().Insert(1, "a");
-
-            if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && signups.Missions.Any(x => x.SignupChannel == channel.Id))
+            if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && _config.RoleAssignChannel == channel.Id)
             {
-                var mission = signups.Missions.Single(x => x.SignupChannel == channel.Id);
-
-                await HandleReactionChange(message, channel, reaction, signups);
-                Console.WriteLine($"[{DateTime.Now.ToString()}] {reaction.User.Value.Username} added reaction {reaction.Emote.Name}");
-
-                if (signups.SignupBans.ContainsKey(reaction.User.Value.Id) && signups.SignupBans[reaction.User.Value.Id] > mission.Date)
-                {
-                    await reaction.User.Value.SendMessageAsync("Masz bana na zapisy, nie mo¿esz zapisaæ siê na misjê, która odbêdzie siê w czasie trwania bana.");
-                    var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
-                    await teamMsg.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
-                    return;
-                }
-
-                await mission.Access.WaitAsync(-1);
-                try
-                {
-                    if (mission.Teams.Any(x => x.TeamMsg == message.Id))
-                    {
-                        var team = mission.Teams.Single(x => x.TeamMsg == message.Id);
-                        if (team.Slots.Any(x => (x.Emoji == reaction.Emote.ToString() || x.Emoji == reactionStringAnimatedVersion) && (x.Count > x.Signed.Count() || team.Reserve != 0)))
-                        {
-                            var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
-
-                            var embed = teamMsg.Embeds.Single();
-
-                            if (!mission.SignedUsers.Any(x => x == reaction.User.Value.Id))
-                            {
-                                var slot = team.Slots.Single(x => x.Emoji == reaction.Emote.ToString() || x.Emoji == reactionStringAnimatedVersion);
-                                if (!slot.Signed.Contains(reaction.User.Value.Id))
-                                    slot.Signed.Add(reaction.User.Value.Id);
-                                if (!mission.SignedUsers.Contains(reaction.User.Value.Id))
-                                    mission.SignedUsers.Add(reaction.User.Value.Id);
-
-                                var newDescription = _miscHelper.BuildTeamSlots(team);
-
-                                var newEmbed = new EmbedBuilder
-                                {
-                                    Title = team.Name,
-                                    Color = embed.Color
-                                };
-
-                                if (newDescription.Count == 2)
-                                    newEmbed.WithDescription(newDescription[0] + newDescription[1]);
-                                else if (newDescription.Count == 1)
-                                    newEmbed.WithDescription(newDescription[0]);
-
-                                if (embed.Footer.HasValue)
-                                    newEmbed.WithFooter(embed.Footer.Value.Text);
-                                else
-                                    newEmbed.WithFooter(team.Pattern);
-
-                                await teamMsg.ModifyAsync(x => x.Embed = newEmbed.Build());
-                            }
-                            else
-                            {
-                                await teamMsg.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
-                            }
-                        }
-                        else if (team.Slots.Any(x => x.Emoji == reaction.Emote.ToString()))
-                        {
-                            var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
-                            await teamMsg.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
-                        }
-                    }
-                }
-                finally
-                {
-                    mission.Access.Release();
-                }
+                await AddedReactionToRolesChannel(message, channel, reaction);
+            }
+            else if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && signups.Missions.Any(x => x.SignupChannel == channel.Id))
+            {
+                await AddedReactionToSignUpsChannel(message, channel, reaction, signups);
             }
             else if (signups.Missions.Any(x => x.SignupChannel == channel.Id) && reaction.UserId != _client.CurrentUser.Id)
             {
@@ -181,95 +74,15 @@ namespace ArmaforcesMissionBot.Handlers
 
         private async Task HandleReactionRemoved(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && _config.RoleAssignChannel == channel.Id)
-            {
-                var fullMessage = await channel.GetMessageAsync(message.Id) as IUserMessage;
-
-                var messageDescription = fullMessage.Embeds.Single().Description;
-                ulong rank;
-                var reactionsMatches = MiscHelper.GetRankArrayMatchesFromText(messageDescription);
-                var rankForEmoji = reactionsMatches.Find(x => x.Item1 == reaction.Emote.ToString());
-
-                try
-                {
-                    string regexPattern = @"\<\@\&([0-9]+)\>";
-                    var rankMatches = Regex.Matches(rankForEmoji.Item2, regexPattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft).First().ToString();
-                    rank = ulong.Parse(Regex.Matches(rankMatches, "[0-9]+", RegexOptions.IgnoreCase | RegexOptions.RightToLeft).First().Value);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Parsing ranks failed.");
-                    return;
-                }
-
-                try
-                {
-                    var role = (channel as SocketGuildChannel).Guild.GetRole(rank);
-
-                    await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(role);
-
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Adding rank failed.");
-                }
-
-                return;
-            }
-
-
             var signups = _services.GetService<SignupsData>();
 
-            var reactionStringAnimatedVersion = reaction.Emote.ToString().Insert(1, "a");
-
-            if (signups.Missions.Any(x => x.SignupChannel == channel.Id))
+            if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && _config.RoleAssignChannel == channel.Id)
             {
-                var mission = signups.Missions.Single(x => x.SignupChannel == channel.Id);
-                var user = await (channel as IGuildChannel).Guild.GetUserAsync(reaction.UserId);
-
-                Console.WriteLine($"[{DateTime.Now.ToString()}] {user.Username} removed reaction {reaction.Emote.Name}");
-
-                await mission.Access.WaitAsync(-1);
-                try
-                {
-                    if (mission.Teams.Any(x => x.TeamMsg == message.Id))
-                    {
-                        var team = mission.Teams.Single(x => x.TeamMsg == message.Id);
-                        if (team.Slots.Any(x => (x.Emoji == reaction.Emote.ToString() || x.Emoji == reactionStringAnimatedVersion) && x.Signed.Contains(user.Id)))
-                        {
-                            var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
-                            var embed = teamMsg.Embeds.Single();
-
-                            var slot = team.Slots.Single(x => x.Emoji == reaction.Emote.ToString() || x.Emoji == reactionStringAnimatedVersion);
-                            slot.Signed.Remove(user.Id);
-                            mission.SignedUsers.Remove(user.Id);
-
-                            var newDescription = _miscHelper.BuildTeamSlots(team);
-
-                            var newEmbed = new EmbedBuilder
-                            {
-                                Title = team.Name,
-                                Color = embed.Color
-                            };
-
-                            if (newDescription.Count == 2)
-                                newEmbed.WithDescription(newDescription[0] + newDescription[1]);
-                            else if (newDescription.Count == 1)
-                                newEmbed.WithDescription(newDescription[0]);
-
-                            if (embed.Footer.HasValue)
-                                newEmbed.WithFooter(embed.Footer.Value.Text);
-                            else
-                                newEmbed.WithFooter(team.Pattern);
-
-                            await teamMsg.ModifyAsync(x => x.Embed = newEmbed.Build());
-                        }
-                    }
-                }
-                finally
-                {
-                    mission.Access.Release();
-                }
+                await RemovedReactionToRolesChannel(message, channel, reaction);
+            }
+            else if (signups.Missions.Any(x => x.SignupChannel == channel.Id))
+            {
+                await RemovedReactionToSignUpsChannel(message, channel, reaction, signups);
             }
         }
 
@@ -316,5 +129,205 @@ namespace ArmaforcesMissionBot.Handlers
                 signups.BanAccess.Release();
             }
         }
+
+        private async Task AddedReactionToSignUpsChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction, SignupsData signups)
+        {
+            var reactionStringAnimatedVersion = reaction.Emote.ToString().Insert(1, "a");
+
+            var mission = signups.Missions.Single(x => x.SignupChannel == channel.Id);
+
+            await HandleReactionChange(message, channel, reaction, signups);
+            Console.WriteLine($"[{DateTime.Now.ToString()}] {reaction.User.Value.Username} added reaction {reaction.Emote.Name}");
+
+            if (signups.SignupBans.ContainsKey(reaction.User.Value.Id) && signups.SignupBans[reaction.User.Value.Id] > mission.Date)
+            {
+                await reaction.User.Value.SendMessageAsync("Masz bana na zapisy, nie mo¿esz zapisaæ siê na misjê, która odbêdzie siê w czasie trwania bana.");
+                var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
+                await teamMsg.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
+                return;
+            }
+
+            await mission.Access.WaitAsync(-1);
+            try
+            {
+                if (mission.Teams.Any(x => x.TeamMsg == message.Id))
+                {
+                    var team = mission.Teams.Single(x => x.TeamMsg == message.Id);
+                    if (team.Slots.Any(x => (x.Emoji == reaction.Emote.ToString() || x.Emoji == reactionStringAnimatedVersion) && (x.Count > x.Signed.Count() || team.Reserve != 0)))
+                    {
+                        var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
+
+                        var embed = teamMsg.Embeds.Single();
+
+                        if (!mission.SignedUsers.Any(x => x == reaction.User.Value.Id))
+                        {
+                            var slot = team.Slots.Single(x => x.Emoji == reaction.Emote.ToString() || x.Emoji == reactionStringAnimatedVersion);
+                            if (!slot.Signed.Contains(reaction.User.Value.Id))
+                                slot.Signed.Add(reaction.User.Value.Id);
+                            if (!mission.SignedUsers.Contains(reaction.User.Value.Id))
+                                mission.SignedUsers.Add(reaction.User.Value.Id);
+
+                            var newDescription = _miscHelper.BuildTeamSlots(team);
+
+                            var newEmbed = new EmbedBuilder
+                            {
+                                Title = team.Name,
+                                Color = embed.Color
+                            };
+
+                            if (newDescription.Count == 2)
+                                newEmbed.WithDescription(newDescription[0] + newDescription[1]);
+                            else if (newDescription.Count == 1)
+                                newEmbed.WithDescription(newDescription[0]);
+
+                            if (embed.Footer.HasValue)
+                                newEmbed.WithFooter(embed.Footer.Value.Text);
+                            else
+                                newEmbed.WithFooter(team.Pattern);
+
+                            await teamMsg.ModifyAsync(x => x.Embed = newEmbed.Build());
+                        }
+                        else
+                        {
+                            await teamMsg.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
+                        }
+                    }
+                    else if (team.Slots.Any(x => x.Emoji == reaction.Emote.ToString()))
+                    {
+                        var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
+                        await teamMsg.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
+                    }
+                }
+            }
+            finally
+            {
+                mission.Access.Release();
+            }
+        }
+
+        private async Task AddedReactionToRolesChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            var fullMessage = await channel.GetMessageAsync(message.Id) as IUserMessage;
+
+            var messageDescription = fullMessage.Embeds.Single().Description;
+            ulong rank;
+            var reactionsMatches = MiscHelper.GetRankArrayMatchesFromText(messageDescription);
+            var rankForEmoji = reactionsMatches.Find(x => x.Item1 == reaction.Emote.ToString());
+
+            try
+            {
+                string regexPattern = @"\<\@\&([0-9]+)\>";
+                var rankMatches = Regex.Matches(rankForEmoji.Item2, regexPattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft).First().ToString();
+                rank = ulong.Parse(Regex.Matches(rankMatches, "[0-9]+", RegexOptions.IgnoreCase | RegexOptions.RightToLeft).First().Value);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Parsing ranks failed.");
+                return;
+            }
+
+            try
+            {
+                var role = (channel as SocketGuildChannel).Guild.GetRole(rank);
+
+                await (reaction.User.Value as SocketGuildUser).AddRoleAsync(role);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Adding rank failed.");
+            }
+
+            return;
+        }
+
+        private async Task RemovedReactionToSignUpsChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction, SignupsData signups)
+        {
+            var reactionStringAnimatedVersion = reaction.Emote.ToString().Insert(1, "a");
+
+            var mission = signups.Missions.Single(x => x.SignupChannel == channel.Id);
+            var user = await (channel as IGuildChannel).Guild.GetUserAsync(reaction.UserId);
+
+            Console.WriteLine($"[{DateTime.Now.ToString()}] {user.Username} removed reaction {reaction.Emote.Name}");
+
+            await mission.Access.WaitAsync(-1);
+            try
+            {
+                if (mission.Teams.Any(x => x.TeamMsg == message.Id))
+                {
+                    var team = mission.Teams.Single(x => x.TeamMsg == message.Id);
+                    if (team.Slots.Any(x => (x.Emoji == reaction.Emote.ToString() || x.Emoji == reactionStringAnimatedVersion) && x.Signed.Contains(user.Id)))
+                    {
+                        var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
+                        var embed = teamMsg.Embeds.Single();
+
+                        var slot = team.Slots.Single(x => x.Emoji == reaction.Emote.ToString() || x.Emoji == reactionStringAnimatedVersion);
+                        slot.Signed.Remove(user.Id);
+                        mission.SignedUsers.Remove(user.Id);
+
+                        var newDescription = _miscHelper.BuildTeamSlots(team);
+
+                        var newEmbed = new EmbedBuilder
+                        {
+                            Title = team.Name,
+                            Color = embed.Color
+                        };
+
+                        if (newDescription.Count == 2)
+                            newEmbed.WithDescription(newDescription[0] + newDescription[1]);
+                        else if (newDescription.Count == 1)
+                            newEmbed.WithDescription(newDescription[0]);
+
+                        if (embed.Footer.HasValue)
+                            newEmbed.WithFooter(embed.Footer.Value.Text);
+                        else
+                            newEmbed.WithFooter(team.Pattern);
+
+                        await teamMsg.ModifyAsync(x => x.Embed = newEmbed.Build());
+                    }
+                }
+            }
+            finally
+            {
+                mission.Access.Release();
+            }
+        }
+
+        private async Task RemovedReactionToRolesChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            var fullMessage = await channel.GetMessageAsync(message.Id) as IUserMessage;
+
+            var messageDescription = fullMessage.Embeds.Single().Description;
+            ulong rank;
+            var reactionsMatches = MiscHelper.GetRankArrayMatchesFromText(messageDescription);
+            var rankForEmoji = reactionsMatches.Find(x => x.Item1 == reaction.Emote.ToString());
+
+            try
+            {
+                string regexPattern = @"\<\@\&([0-9]+)\>";
+                var rankMatches = Regex.Matches(rankForEmoji.Item2, regexPattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft).First().ToString();
+                rank = ulong.Parse(Regex.Matches(rankMatches, "[0-9]+", RegexOptions.IgnoreCase | RegexOptions.RightToLeft).First().Value);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Parsing ranks failed.");
+                return;
+            }
+
+            try
+            {
+                var role = (channel as SocketGuildChannel).Guild.GetRole(rank);
+
+                await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(role);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Adding rank failed.");
+            }
+
+            return;
+        }
+
     }
 }
