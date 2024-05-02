@@ -162,5 +162,56 @@ namespace ArmaforcesMissionBot.Helpers
 
             return Regex.Matches(text, rolePattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
         }
+
+        public static List<Tuple<string, string>> GetRankArrayMatchesFromText(string text)
+        {
+            string unicodeEmoji = @"(?:\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])(?:\ufe0f)?";
+            string emote = $@"((?:<?a?:.+?:(?:[0-9]+>)?)|{unicodeEmoji})";
+            string rank = @"\<\@\&([0-9]+)\>";
+            string rolePattern = $@"[ ]*{emote}[ ]*-[ ]*{rank}";
+
+            var rankMatches = Regex.Matches(text, rolePattern, RegexOptions.IgnoreCase);
+
+            var rankList = new List<Tuple<string, string>> { };
+
+            foreach (Match rankLine in rankMatches)
+            {
+                var spilttedTexts = rankLine.Value.Split(" - ");
+                rankList.Add(Tuple.Create(spilttedTexts[0], spilttedTexts[1]));
+            }
+
+            return rankList;
+        }
+
+        public static IEmote[] GetEmojiMatchesFromText(string text)
+        {
+            string unicodeEmoji = @"(?:\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])(?:\ufe0f)?";
+            string emote = $@"((?:<?a?:.+?:(?:[0-9]+>)?)|{unicodeEmoji})";
+
+            var emojiMatches = Regex.Matches(text, emote, RegexOptions.IgnoreCase);
+
+            IEmote[] emoji = new IEmote[emojiMatches.Count];
+
+            foreach (var (emojiMatch, i) in emojiMatches.Select((value, i) => (value, i)))
+            {
+                try
+                {
+                    emoji[i] = Emote.Parse(HttpUtility.HtmlDecode(emojiMatch.Value));
+                }
+                catch (Exception e)
+                {
+                    emoji[i] = new Emoji(HttpUtility.HtmlDecode(emojiMatch.Value));
+                }
+            }
+
+            return emoji;
+        }
+
+        public static MatchCollection GetRankMatchesFromText(string text)
+        {
+            string rank = @"\<\@\&([0-9]+)\>";
+
+            return Regex.Matches(text, rank, RegexOptions.IgnoreCase);
+        }
     }
 }

@@ -10,7 +10,8 @@ namespace ArmaforcesMissionBot.Attributes
 {
     public enum RanksEnum
     {
-        Recruiter
+        Recruiter,
+        RoleMaker
     }
 
     internal static class RanksEnumMethods
@@ -19,6 +20,7 @@ namespace ArmaforcesMissionBot.Attributes
             => role switch
             {
                 RanksEnum.Recruiter => config.RecruiterRole,
+                RanksEnum.RoleMaker => config.RoleMaker,
                 _ => 0
             };
     }

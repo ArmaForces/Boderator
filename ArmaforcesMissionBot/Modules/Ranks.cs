@@ -1,5 +1,6 @@
 ﻿using ArmaforcesMissionBot.Attributes;
 using ArmaforcesMissionBot.DataClasses;
+using ArmaforcesMissionBot.Helpers;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -8,6 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using static ArmaforcesMissionBot.DataClasses.OpenedDialogs;
+using System.Web;
 
 namespace ArmaforcesMissionBot.Modules
 {
@@ -17,6 +20,8 @@ namespace ArmaforcesMissionBot.Modules
         public IServiceProvider _map { get; set; }
         public DiscordSocketClient _client { get; set; }
         public Config _config { get; set; }
+        public MiscHelper _miscHelper { get; set; }
+        public OpenedDialogs _dialogs { get; set; }
 
         [Command("rekrutuj")]
         [Summary("Przydziela rangę rekrut.")]
@@ -78,6 +83,77 @@ namespace ArmaforcesMissionBot.Modules
             }
 
             await Context.Message.DeleteAsync();
+        }
+
+        [Command("ranga")]
+        [Summary("Dodaj wiadomość do automatycznego dodwania rangi. " +
+                 "Argumenty: tytuł; opis; rangi do nadania; reakcje.")]
+        [RequireRank(RanksEnum.RoleMaker)]
+        public async Task RankAssign([Remainder] string rankText)
+        {
+            var spilttedTexts = rankText.Split(";");
+            if (spilttedTexts.Length != 4)
+            {
+                await ReplyAsync("Źle!");
+                return;
+            }
+            var rankTitle = spilttedTexts[0];
+            var rankDescription = spilttedTexts[1];
+            var rankType = spilttedTexts[2];
+            var reaction = spilttedTexts[3];
+
+            var rankMatches = MiscHelper.GetRankMatchesFromText(rankType);
+            var reactionsMatches = MiscHelper.GetEmojiMatchesFromText(reaction);
+
+            if (reactionsMatches.Distinct().Count() != reactionsMatches.Length)
+            {
+                await ReplyAsync("Reakcje nie są unikalne!");
+                return;
+            }
+
+            if (rankMatches.Count != reactionsMatches.Length)
+            {
+                if (rankMatches.Count > reactionsMatches.Length)
+                {
+                    await ReplyAsync("Za mało reakcji do rang!");
+                    return;
+                }
+
+                reactionsMatches = reactionsMatches[0..rankMatches.Count];
+            }
+
+            var embedBuilder = new EmbedBuilder();
+
+            string embedText = rankDescription + "\r\nReakcje:\r\n";
+
+            foreach (var (reactionMatch, i) in rankMatches.Select((value, i) => (value, i)))
+            {
+                embedText = embedText + reactionsMatches[i] + " - ";
+                embedText = embedText + reactionMatch.Value + "\r\n";
+            }
+
+            embedBuilder.WithTitle(rankTitle).WithDescription(embedText);
+
+            _miscHelper.CreateConfirmationDialog(
+                        _dialogs,
+                       Context,
+                       embedBuilder.Build(),
+            async dialog =>
+            {
+                _dialogs.Dialogs.Remove(dialog);
+                ReplyAsync("Pasi!");
+                
+                var channel = Context.Guild.GetTextChannel(_config.RoleAssignChannel);
+                var message = await channel.SendMessageAsync(embed: embedBuilder.Build());
+                await message.AddReactionsAsync(reactionsMatches);
+            },
+            dialog =>
+            {
+                Context.Channel.DeleteMessageAsync(dialog.DialogID);
+                _dialogs.Dialogs.Remove(dialog);
+                ReplyAsync("Nie to nie!");
+                return;
+            });
         }
     }
 }
