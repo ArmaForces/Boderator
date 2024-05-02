@@ -57,11 +57,11 @@ namespace ArmaforcesMissionBot.Handlers
 
             if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && _config.RoleAssignChannel == channel.Id)
             {
-                await AddedReactionToRolesChannel(message, channel, reaction);
+                await AddedReactionInRolesChannel(message, channel, reaction);
             }
             else if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && signups.Missions.Any(x => x.SignupChannel == channel.Id))
             {
-                await AddedReactionToSignUpsChannel(message, channel, reaction, signups);
+                await AddedReactionInSignupsChannel(message, channel, reaction, signups);
             }
             else if (signups.Missions.Any(x => x.SignupChannel == channel.Id) && reaction.UserId != _client.CurrentUser.Id)
             {
@@ -78,11 +78,11 @@ namespace ArmaforcesMissionBot.Handlers
 
             if (reaction.User.IsSpecified && !reaction.User.Value.IsBot && _config.RoleAssignChannel == channel.Id)
             {
-                await RemovedReactionToRolesChannel(message, channel, reaction);
+                await RemovedReactionInRolesChannel(message, channel, reaction);
             }
             else if (signups.Missions.Any(x => x.SignupChannel == channel.Id))
             {
-                await RemovedReactionToSignUpsChannel(message, channel, reaction, signups);
+                await RemovedReactionInSignupsChannel(message, channel, reaction, signups);
             }
         }
 
@@ -130,7 +130,7 @@ namespace ArmaforcesMissionBot.Handlers
             }
         }
 
-        private async Task AddedReactionToSignUpsChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction, SignupsData signups)
+        private async Task AddedReactionInSignupsChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction, SignupsData signups)
         {
             var reactionStringAnimatedVersion = reaction.Emote.ToString().Insert(1, "a");
 
@@ -205,7 +205,7 @@ namespace ArmaforcesMissionBot.Handlers
             }
         }
 
-        private async Task AddedReactionToRolesChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        private async Task AddedReactionInRolesChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
         {
             var fullMessage = await channel.GetMessageAsync(message.Id) as IUserMessage;
 
@@ -241,7 +241,7 @@ namespace ArmaforcesMissionBot.Handlers
             return;
         }
 
-        private async Task RemovedReactionToSignUpsChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction, SignupsData signups)
+        private async Task RemovedReactionInSignupsChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction, SignupsData signups)
         {
             var reactionStringAnimatedVersion = reaction.Emote.ToString().Insert(1, "a");
 
@@ -293,7 +293,7 @@ namespace ArmaforcesMissionBot.Handlers
             }
         }
 
-        private async Task RemovedReactionToRolesChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        private async Task RemovedReactionInRolesChannel(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
         {
             var fullMessage = await channel.GetMessageAsync(message.Id) as IUserMessage;
 
