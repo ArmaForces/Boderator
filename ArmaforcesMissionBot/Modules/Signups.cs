@@ -7,25 +7,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using ArmaforcesMissionBot.Attributes;
-using ArmaforcesMissionBot.DataClasses;
 using ArmaforcesMissionBot.Exceptions;
 using ArmaforcesMissionBot.Extensions;
 using ArmaforcesMissionBot.Features;
 using ArmaforcesMissionBot.Features.Modsets;
-using ArmaforcesMissionBot.Features.Modsets.Constants;
 using ArmaforcesMissionBot.Features.Signups.Importer;
 using ArmaforcesMissionBot.Helpers;
 using ArmaforcesMissionBotSharedClasses;
 using CSharpFunctionalExtensions;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-using Newtonsoft.Json;
 
 namespace ArmaforcesMissionBot.Modules
 {
@@ -273,7 +265,7 @@ namespace ArmaforcesMissionBot.Modules
                         .WithDescription(_miscHelper.BuildTeamSlots(team)[0])
                         .WithFooter(team.Pattern);
 
-                    _miscHelper.CreateConfirmationDialog(
+                    await _miscHelper.CreateConfirmationDialog(
                         _dialogs,
                         Context,
                         embed.Build(),
@@ -495,7 +487,7 @@ namespace ArmaforcesMissionBot.Modules
 
                     _miscHelper.BuildTeamsEmbed(mission.Teams, embed);
 
-                    _miscHelper.CreateConfirmationDialog(
+                    await _miscHelper.CreateConfirmationDialog(
                         _dialogs,
                        Context,
                        embed.Build(),

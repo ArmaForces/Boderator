@@ -4,10 +4,10 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ArmaforcesMissionBot.Modules
 {
@@ -17,13 +17,14 @@ namespace ArmaforcesMissionBot.Modules
         public IServiceProvider _map { get; set; }
         public DiscordSocketClient _client { get; set; }
         public Config _config { get; set; }
+        public ILogger<Ranks> _logger { get; set; }
 
         [Command("rekrutuj")]
         [Summary("Przydziela rangę rekrut.")]
         [RequireRank(RanksEnum.Recruiter)]
         public async Task Recruit(IGuildUser user)
         {
-            Console.WriteLine($"[{DateTime.Now.ToString()}] {Context.User.Username} called recruit command");
+            _logger.LogInformation("{Recruiter} recruiting user {UserName}", Context.User.Username, user.Username);
             var signupRole = Context.Guild.GetRole(_config.SignupRole);
             if (user.RoleIds.Contains(_config.RecruitRole))
                 await ReplyAsync($"Przecież {user.Mention} już został zrekrutowany.");
@@ -52,7 +53,7 @@ namespace ArmaforcesMissionBot.Modules
         [RequireRank(RanksEnum.Recruiter)]
         public async Task Kick(IGuildUser user)
         {
-            Console.WriteLine($"[{DateTime.Now.ToString()}] {Context.User.Username} called kick command");
+            _logger.LogInformation("{Kicker} kicking user {UserName}", Context.User.Username, user.Username);
             var signupRole = Context.Guild.GetRole(_config.SignupRole);
             var userRoleIds = user.RoleIds;
             if (userRoleIds.All(x => x == _config.RecruitRole || x == _config.AFGuild))

@@ -1,4 +1,4 @@
-﻿using ArmaforcesMissionBot.DataClasses;
+using ArmaforcesMissionBot.DataClasses;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
 using static ArmaforcesMissionBot.DataClasses.OpenedDialogs;
 
@@ -51,8 +52,8 @@ namespace ArmaforcesMissionBot.Helpers
 
             /*foreach (var prebeton in team.Signed)
             {
-                Console.WriteLine(prebeton.Value + " " + prebeton.Key);
-                Console.WriteLine(HttpUtility.HtmlDecode(prebeton.Value) + " " + HttpUtility.HtmlDecode(prebeton.Key));
+                Log.Verbose(prebeton.Value + " " + prebeton.Key);
+                Log.Verbose(HttpUtility.HtmlDecode(prebeton.Value) + " " + HttpUtility.HtmlDecode(prebeton.Key));
                 var regex = new Regex(Regex.Escape(HttpUtility.HtmlDecode(prebeton.Value)) + @"-(?:$|\n)");
                 description = regex.Replace(description, HttpUtility.HtmlDecode(prebeton.Value) + "-" + HttpUtility.HtmlDecode(prebeton.Key) + "\n", 1);
             }*/
@@ -126,7 +127,7 @@ namespace ArmaforcesMissionBot.Helpers
             return slots;
         }
 
-        public async void CreateConfirmationDialog(
+        public async Task CreateConfirmationDialog(
             OpenedDialogs openedDialogs,
             SocketCommandContext context,
             Embed description,

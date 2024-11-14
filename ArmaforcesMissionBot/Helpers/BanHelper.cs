@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Serilog;
 
 namespace ArmaforcesMissionBot.Helpers
 {
@@ -54,9 +55,9 @@ namespace ArmaforcesMissionBot.Helpers
                     return sentMessage.Id;
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Console.WriteLine($"[{DateTime.Now.ToString()}] MakeBanMessageFailed: {e.Message}");
+                Log.Error(e, "Ban message creation failed");
             }
 
             return banMessageId;
@@ -97,9 +98,9 @@ namespace ArmaforcesMissionBot.Helpers
                     signups.SignupBansHistoryMessage = sentMessage.Id;
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Console.WriteLine($"[{DateTime.Now.ToString()}] MakeBanHistoryMessageFailed: {e.Message}");
+                Log.Error(e, "Creating ban history message failed");
             }
         }
 
@@ -278,9 +279,9 @@ namespace ArmaforcesMissionBot.Helpers
                     PermValue.Deny,
                     PermValue.Deny));
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
-                    Console.WriteLine($"Woops, banning user from channel failed : {e.Message}");
+                    Log.Error(e, "Banning {User} from {Channel} failed", user.Username, missionChannel.Name);
                 }
             }
         }
