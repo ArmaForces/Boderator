@@ -8,6 +8,7 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -24,6 +25,7 @@ namespace ArmaforcesMissionBot.Controllers
         private readonly BanHelper _banHelper;
         private readonly SignupHelper _signupHelper;
         private readonly MiscHelper _miscHelper;
+        private readonly ILogger<ApiController> _logger;
 
         public ApiController(
             MissionsArchiveData missionsArchiveData,
@@ -31,7 +33,8 @@ namespace ArmaforcesMissionBot.Controllers
             DiscordSocketClient client,
             BanHelper banHelper,
             SignupHelper signupHelper,
-            MiscHelper miscHelper)
+            MiscHelper miscHelper,
+            ILogger<ApiController> logger)
         {
             _missionsArchiveData = missionsArchiveData;
             _signupsData = signupsData;
@@ -39,6 +42,7 @@ namespace ArmaforcesMissionBot.Controllers
             _banHelper = banHelper;
             _signupHelper = signupHelper;
             _miscHelper = miscHelper;
+            _logger = logger;
         }
 
         [HttpGet("currentMission")]
@@ -345,7 +349,7 @@ namespace ArmaforcesMissionBot.Controllers
         [HttpPost("createMission")]
         public async Task CreateMissionAsync(Mission mission)
         {
-            Console.WriteLine(JsonConvert.SerializeObject(mission));
+            _logger.LogTrace($"Create mission request: {JsonConvert.SerializeObject(mission)}");
 
             mission.Editing = ArmaforcesMissionBotSharedClasses.Mission.EditEnum.New;
             _signupsData.Missions.Add(mission);

@@ -6,11 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ArmaforcesMissionBot.Features.Modsets;
 using ArmaforcesMissionBot.Features.Modsets.Legacy;
+using Microsoft.Extensions.Logging;
 using static ArmaforcesMissionBot.DataClasses.SignupsData;
 
 namespace ArmaforcesMissionBot.Handlers
@@ -22,9 +22,12 @@ namespace ArmaforcesMissionBot.Handlers
         private Config _config;
         private ModsetProvider _newModsetProvider;
         private LegacyModsetProvider _legacyModsetProvider;
-
+        private ILogger<LoadupHandler> _logger;
+        
         public async Task Install(IServiceProvider map)
         {
+            _logger = map.GetRequiredService<ILogger<LoadupHandler>>();
+            
             _client = map.GetService<DiscordSocketClient>();
             _config = map.GetService<Config>();
             _newModsetProvider = new ModsetProvider(map.GetService<IModsetsApiClient>());
@@ -36,7 +39,7 @@ namespace ArmaforcesMissionBot.Handlers
 
         private async Task Load(SocketGuild guild)
         {
-            Console.WriteLine($"[{DateTime.Now.ToString()}] Loading up from: {guild.Name}");
+            _logger.LogInformation("Loading up from server: {ServerName}", guild.Name);
 
             await LoadMissions(guild);
             await LoadBans(guild);
@@ -50,7 +53,7 @@ namespace ArmaforcesMissionBot.Handlers
 
             var channels = guild.CategoryChannels.Single(x => x.Id == _config.SignupsCategory);
 
-            Console.WriteLine($"[{DateTime.Now.ToString()}] Loading missions");
+            _logger.LogInformation("Loading missions");
 
             foreach (var channel in channels.Channels.Where(x => x.Id != _config.SignupsArchive && x.Id != _config.CreateMissionChannel && x.Id != _config.HallOfShameChannel).Reverse())
             {
@@ -118,7 +121,7 @@ namespace ArmaforcesMissionBot.Handlers
                                 pattern += $"{match.Groups[0]} ";
                                 team.Slots.Add(slot);
 
-                                Console.WriteLine($"New slot {slot.Emoji} [{slot.Count}] {slot.Name}");
+                                _logger.LogDebug("New slot {Emoji} [{Count}] {Name}", slot.Emoji, slot.Count, slot.Name);
                             }
 
                             team.Name = team.Name.Replace("|", "");
@@ -133,13 +136,13 @@ namespace ArmaforcesMissionBot.Handlers
                                     {
                                         var signedID = ulong.Parse(match.Groups[2].Value);
                                         mission.SignedUsers.Add(signedID);
-                                        Console.WriteLine($"{match.Groups[1].Value} : {match.Groups[2].Value} ({signedID})");
+                                        _logger.LogTrace("{Match1} : {Match2} ({UserId})", match.Groups[1].Value, match.Groups[2].Value, signedID);
                                         team.Slots.Single(x => x.Emoji == match.Groups[1].Value).Signed.Add(signedID);
                                     }
                                 }
-                                catch(Exception e)
+                                catch (Exception exception)
                                 {
-                                    Console.WriteLine($"Failed loading team {team.Name} : {e.Message}");
+                                    _logger.LogWarning(exception, "Failed loading team {Name}", team.Name);
                                 }
                             }
 
@@ -197,7 +200,7 @@ namespace ArmaforcesMissionBot.Handlers
         {
             var signups = _services.GetService<SignupsData>();
 
-            Console.WriteLine($"[{DateTime.Now.ToString()}] Loading bans");
+            _logger.LogInformation("Loading bans");
 
             var banChannel = guild.Channels.Single(x => x.Id == _config.HallOfShameChannel) as SocketTextChannel;
             var messages = banChannel.GetMessagesAsync();
@@ -269,7 +272,7 @@ namespace ArmaforcesMissionBot.Handlers
 
             var channels = guild.CategoryChannels.Single(x => x.Id == _config.SignupsCategory);
 
-            Console.WriteLine($"[{DateTime.Now.ToString()}] Loading ban history");
+            _logger.LogInformation("Loading ban history");
             // History of bans
             var shameChannel = guild.Channels.Single(x => x.Id == _config.HallOfShameChannel) as SocketTextChannel;
             var messages = shameChannel.GetMessagesAsync();
@@ -305,7 +308,7 @@ namespace ArmaforcesMissionBot.Handlers
                                         uint.Parse(match.Groups[2].Value),
                                         uint.Parse(match.Groups[3].Value)));
                             }
-                            Console.WriteLine($"[{DateTime.Now.ToString()}] Loaded signup ban history");
+                            _logger.LogInformation("Loaded signup ban history");
                         }
                     }
                     finally
@@ -335,7 +338,7 @@ namespace ArmaforcesMissionBot.Handlers
                                         DateTime.Parse(match.Groups[3].Value),
                                         (BanType)Enum.Parse(typeof(BanType), match.Groups[4].Value)));
                             }
-                            Console.WriteLine($"[{DateTime.Now.ToString()}] Loaded reaction spam ban history");
+                            _logger.LogInformation("Loaded reaction spam ban history");
                         }
                     }
                     finally
@@ -352,7 +355,7 @@ namespace ArmaforcesMissionBot.Handlers
 
             var channels = guild.CategoryChannels.Single(x => x.Id == _config.SignupsCategory);
 
-            Console.WriteLine($"[{DateTime.Now.ToString()}] Loading mission history");
+            _logger.LogInformation("Loading mission history");
             archive.ArchiveMissions.Clear();
 
             // History of missions
@@ -389,7 +392,7 @@ namespace ArmaforcesMissionBot.Handlers
                     DateTimeStyles.RoundtripKind,
                     out date))
                 {
-                    Console.WriteLine($"Loading failed on mission date: {embed.Footer.Value.Text}");
+                    _logger.LogWarning("Failed to parse archive mission date {Date}", embed.Footer.Value.Text);
                     continue;
                 }
 
@@ -436,7 +439,7 @@ namespace ArmaforcesMissionBot.Handlers
                 return x.Date.CompareTo(y.Date);
             });
 
-            Console.WriteLine($"[{DateTime.Now.ToString()}] Loaded {archive.ArchiveMissions.Count} archive missions");
+            _logger.LogInformation("Loaded {Count} archive missions", archive.ArchiveMissions.Count);
         }
 
         private string GetModsetNameFromUnknownUrl(string unknownUrl)

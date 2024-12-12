@@ -1,9 +1,7 @@
 ﻿using ArmaforcesMissionBot.Handlers;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,6 +18,17 @@ namespace ArmaforcesMissionBot.Modules
         public Misc()
         {
             //_map = map;
+        }
+
+        [Command("restart")]
+        [Summary("Throws terminating exception")]
+        [RequireUserPermission(GuildPermission.ManageRoles)]
+        public Task Restart()
+        {
+            ReplyAsync("Boderator is restarting");
+            CrashActual();
+
+            return Task.CompletedTask;
         }
 
         [Command("snipe")]
@@ -96,6 +105,12 @@ namespace ArmaforcesMissionBot.Modules
             }
 
             await ReplyAsync(embed: embed.Build());
+        }
+
+        private static async void CrashActual()
+        {
+            await Task.Delay(50);
+            throw new ApplicationException("Boderator wypierdala się według życzenia");
         }
     }
 }

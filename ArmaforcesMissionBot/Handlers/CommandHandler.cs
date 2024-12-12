@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Serilog;
 
 namespace ArmaforcesMissionBot.Handlers
 {
@@ -50,17 +51,24 @@ namespace ArmaforcesMissionBot.Handlers
 
             // Keep in mind that result does not indicate a return value
             // rather an object stating if the command executed successfully.
-            var result = await _commands.ExecuteAsync(
-                context: context,
-                argPos: argPos,
-                services: _services);
+            try
+            {
+                var result = await _commands.ExecuteAsync(
+                    context: context,
+                    argPos: argPos,
+                    services: _services);
 
-            // Optionally, we may inform the user if the command fails
-            // to be executed; however, this may not always be desired,
-            // as it may clog up the request queue should a user spam a
-            // command.
-            if (!result.IsSuccess)
-                await context.Channel.SendMessageAsync(result.ErrorReason);
+                // Optionally, we may inform the user if the command fails
+                // to be executed; however, this may not always be desired,
+                // as it may clog up the request queue should a user spam a
+                // command.
+                if (!result.IsSuccess)
+                    await context.Channel.SendMessageAsync(result.ErrorReason);
+            }
+            catch (Exception exception)
+            {
+                Log.Error(exception, "An error occured while handling a command {@Message}", message);
+            }
         }
     }
 }

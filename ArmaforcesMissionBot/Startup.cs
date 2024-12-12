@@ -1,19 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 using System.Globalization;
 using ArmaforcesMissionBot.DependencyInjection;
-using ArmaforcesMissionBot.Services;
-using Discord;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -21,8 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Localization;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace ArmaforcesMissionBot
 {
@@ -49,6 +37,7 @@ namespace ArmaforcesMissionBot
 
             services.AddRouting();
             services.AddMvc(option => option.EnableEndpointRouting = false);
+            services.AddSerilog();
             services.AddLogging(
                 builder =>
                 {

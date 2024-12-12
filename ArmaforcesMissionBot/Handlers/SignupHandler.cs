@@ -5,11 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Timers;
 using ArmaforcesMissionBot.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace ArmaforcesMissionBot.Handlers
 {
@@ -32,9 +31,11 @@ namespace ArmaforcesMissionBot.Handlers
         private IServiceProvider _services;
         private Config _config;
         private Timer _timer;
+        private ILogger<SignupHandler> _logger;
 
         public async Task Install(IServiceProvider map)
         {
+            _logger = map.GetRequiredService<ILogger<SignupHandler>>();
             _client = map.GetService<DiscordSocketClient>();
             _config = map.GetService<Config>();
             _miscHelper = map.GetService<MiscHelper>();
@@ -63,7 +64,7 @@ namespace ArmaforcesMissionBot.Handlers
                 var mission = signups.Missions.Single(x => x.SignupChannel == channel.Id);
 
                 await HandleReactionChange(message, channel, reaction, signups);
-                Console.WriteLine($"[{DateTime.Now.ToString()}] {reaction.User.Value.Username} added reaction {reaction.Emote.Name}");
+                _logger.LogInformation("{User} added reaction {Emoji}", reaction.User.Value.Username, reaction.Emote.Name);
 
                 if (signups.SignupBans.ContainsKey(reaction.User.Value.Id) && signups.SignupBans[reaction.User.Value.Id] > mission.Date)
                 {
@@ -133,7 +134,7 @@ namespace ArmaforcesMissionBot.Handlers
             else if(signups.Missions.Any(x => x.SignupChannel == channel.Id) && reaction.UserId != _client.CurrentUser.Id)
             {
                 var user = _client.GetUser(reaction.UserId);
-                Console.WriteLine($"Naprawiam reakcje po spamie {user.Username}");
+                _logger.LogInformation("Fixing reactions after {User} spam", user.Username);
                 var teamMsg = await channel.GetMessageAsync(message.Id) as IUserMessage;
                 await teamMsg.RemoveReactionAsync(reaction.Emote, user);
             }
@@ -150,7 +151,7 @@ namespace ArmaforcesMissionBot.Handlers
                 var mission = signups.Missions.Single(x => x.SignupChannel == channel.Id);
                 var user = await (channel as IGuildChannel).Guild.GetUserAsync(reaction.UserId);
 
-                Console.WriteLine($"[{DateTime.Now.ToString()}] {user.Username} removed reaction {reaction.Emote.Name}");
+                _logger.LogInformation("{User} removed reaction {Emoji}", user.Username, reaction.Emote.Name);
 
                 await mission.Access.WaitAsync(-1);
                 try
@@ -218,7 +219,7 @@ namespace ArmaforcesMissionBot.Handlers
 
                 signups.ReactionTimes[reaction.User.Value.Id].Enqueue(DateTime.Now);
 
-                Console.WriteLine($"[{ DateTime.Now.ToString()}] { reaction.User.Value.Username} spam counter: { signups.ReactionTimes[reaction.User.Value.Id].Count}");
+                _logger.LogDebug("{User} spam counter increased: {Count}", reaction.User.Value.Username, signups.ReactionTimes[reaction.User.Value.Id].Count);
 
                 if (signups.ReactionTimes[reaction.User.Value.Id].Count >= 10 && !signups.SpamBans.ContainsKey(reaction.User.Value.Id))
                 {

@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using Serilog;
 
 namespace ArmaforcesMissionBot.Helpers
 {
@@ -144,7 +145,7 @@ namespace ArmaforcesMissionBot.Helpers
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+                    Log.Error(e, "Failed to what the hell is happening here? It's not working anyway");
                 }
                 finally
                 {
@@ -153,9 +154,9 @@ namespace ArmaforcesMissionBot.Helpers
 
                 await signupChannel.AddPermissionOverwriteAsync(everyone, everyoneStartPermissions);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Log.Error(e, "Failed to add bot permissions");
             }
             
 

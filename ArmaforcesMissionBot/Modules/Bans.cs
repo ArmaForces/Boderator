@@ -1,15 +1,13 @@
-﻿using ArmaforcesMissionBot.Attributes;
-using ArmaforcesMissionBot.DataClasses;
+﻿using ArmaforcesMissionBot.DataClasses;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using ArmaforcesMissionBot.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace ArmaforcesMissionBot.Modules
 {
@@ -22,6 +20,7 @@ namespace ArmaforcesMissionBot.Modules
         public CommandService _commands { get; set; }
 
         public MiscHelper MiscHelper { get; set; }
+        public ILogger<Bans> _logger { get; set; }
 
         public Bans()
         {
@@ -179,7 +178,7 @@ namespace ArmaforcesMissionBot.Modules
             {
                 var mission = signups.Missions.Single(x => x.SignupChannel == channel.Id);
 
-                Console.WriteLine($"[{DateTime.Now.ToString()}] {userID} removed from mission {channel.Name} by {Context.User.Username}");
+                _logger.LogInformation("{UserId} removed from mission {MissionName} by {User}", userID, channel.Name, Context.User.Username);
 
                 await mission.Access.WaitAsync(-1);
                 try

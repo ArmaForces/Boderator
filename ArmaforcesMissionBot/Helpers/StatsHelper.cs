@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Serilog;
 using static ArmaforcesMissionBot.Modules.Stats;
 
 namespace ArmaforcesMissionBot.Helpers
@@ -133,7 +134,7 @@ namespace ArmaforcesMissionBot.Helpers
                     else
                         continue;
                     tasks.Add(textChannel, task);
-                    Console.WriteLine($"[{DateTime.Now.ToString()}] Added task {textChannel.Name} ({tasks.Count})");
+                    Log.Debug("New task for stats of {Channel}. Total tasks {Count}", textChannel.Name, tasks.Count);
                     System.Threading.Thread.Sleep(200);
                 }
             }
@@ -208,7 +209,7 @@ namespace ArmaforcesMissionBot.Helpers
                     {
 
                         task.Value._lastMessagesLoaded = task.Value._messagesLoaded;
-                        Console.WriteLine($"[{DateTime.Now.ToString()}] Updated task {task.Key.Name} ({task.Value._messagesLoaded}) - [{task.Value._oldestLoadedMessage.Timestamp.ToString()}], tasks: {tasks.Count}");
+                        Log.Debug($"[{DateTime.Now.ToString()}] Updated task {task.Key.Name} ({task.Value._messagesLoaded}) - [{task.Value._oldestLoadedMessage.Timestamp.ToString()}], tasks: {tasks.Count}");
                         if (searchDir == Direction.Before)
                             task.Value._task = task.Key.GetMessagesAsync(task.Value._oldestLoadedMessage, searchDir, limit: _messagesInBatch).FlattenAsync();
                         else
@@ -225,7 +226,7 @@ namespace ArmaforcesMissionBot.Helpers
                             _cache._emotesUsage[emote.Key] += emote.Value;
                         }
                         tasks.Remove(task.Key);
-                        Console.WriteLine($"[{DateTime.Now.ToString()}] Updated task {task.Key.Name} ({task.Value._messagesLoaded}), tasks: {tasks.Count}");
+                        Log.Debug($"[{DateTime.Now.ToString()}] Updated task {task.Key.Name} ({task.Value._messagesLoaded}), tasks: {tasks.Count}");
                     }
                 }
 
