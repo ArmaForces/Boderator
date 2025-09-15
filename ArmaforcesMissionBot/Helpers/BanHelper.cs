@@ -37,21 +37,24 @@ namespace ArmaforcesMissionBot.Helpers
                         message += $"<@!{ban.Key}>-{ban.Value.ToString()}\n";
                 }
 
-                var embed = new EmbedBuilder()
-                    .WithColor(Color.Green)
-                    .WithDescription(message);
-
+                var embed = string.IsNullOrEmpty(message)
+                    ? null
+                    : new EmbedBuilder()
+                        .WithColor(Color.Green)
+                        .WithDescription(message)
+                        .Build();
+                
                 if (banMessageId != 0)
                 {
                     var banAnnouncemens = guild.GetTextChannel(banAnnouncementChannel);
                     var banMessage = await banAnnouncemens.GetMessageAsync(banMessageId) as IUserMessage;
-                    await banMessage.ModifyAsync(x => x.Embed = embed.Build());
+                    await banMessage.ModifyAsync(x => x.Embed = embed);
                     return banMessageId;
                 }
                 else
                 {
                     var banAnnouncemens = guild.GetTextChannel(banAnnouncementChannel);
-                    var sentMessage = await banAnnouncemens.SendMessageAsync(messageText, embed: embed.Build());
+                    var sentMessage = await banAnnouncemens.SendMessageAsync(messageText, embed: embed);
                     return sentMessage.Id;
                 }
             }
@@ -80,21 +83,24 @@ namespace ArmaforcesMissionBot.Helpers
                         message += $"<@!{ban.Key}>-{ban.Value.Item1.ToString()}-{ban.Value.Item2.ToString()}\n";
                 }
 
-                var embed = new EmbedBuilder()
+                var embed = string.IsNullOrEmpty(message)
+                    ? null
+                    : new EmbedBuilder()
                     .WithColor(Color.Green)
                     .WithTitle("`osoba-liczba banów-sumaryczna liczba dni bana`")
-                    .WithDescription(message);
+                    .WithDescription(message)
+                    .Build();
 
                 if (signups.SignupBansHistoryMessage != 0)
                 {
                     var banAnnouncemens = guild.GetTextChannel(config.HallOfShameChannel);
                     var banMessage = await banAnnouncemens.GetMessageAsync(signups.SignupBansHistoryMessage) as IUserMessage;
-                    await banMessage.ModifyAsync(x => x.Embed = embed.Build());
+                    await banMessage.ModifyAsync(x => x.Embed = embed);
                 }
                 else
                 {
                     var banAnnouncemens = guild.GetTextChannel(config.HallOfShameChannel);
-                    var sentMessage = await banAnnouncemens.SendMessageAsync("Historia banów na zapisy:", embed: embed.Build());
+                    var sentMessage = await banAnnouncemens.SendMessageAsync("Historia banów na zapisy:", embed: embed);
                     signups.SignupBansHistoryMessage = sentMessage.Id;
                 }
             }
@@ -119,21 +125,24 @@ namespace ArmaforcesMissionBot.Helpers
                     message += $"<@!{ban.Key}>-{ban.Value.Item1.ToString()}-{ban.Value.Item2.ToString()}-{ban.Value.Item3.ToString()}\n";
             }
 
-            var embed = new EmbedBuilder()
+            var embed = string.IsNullOrEmpty(message)
+                ? null
+                : new EmbedBuilder()
                 .WithColor(Color.Green)
                 .WithTitle("`osoba-liczba banów-ostatni ban-typ ostatniego bana`")
-                .WithDescription(message);
+                .WithDescription(message)
+                .Build();
 
             if (signups.SpamBansHistoryMessage != 0)
             {
                 var banAnnouncemens = guild.GetTextChannel(config.HallOfShameChannel);
                 var banMessage = await banAnnouncemens.GetMessageAsync(signups.SpamBansHistoryMessage) as IUserMessage;
-                await banMessage.ModifyAsync(x => x.Embed = embed.Build());
+                await banMessage.ModifyAsync(x => x.Embed = embed);
             }
             else
             {
                 var banAnnouncemens = guild.GetTextChannel(config.HallOfShameChannel);
-                var sentMessage = await banAnnouncemens.SendMessageAsync("Historia banów za spam reakcjami:", embed: embed.Build());
+                var sentMessage = await banAnnouncemens.SendMessageAsync("Historia banów za spam reakcjami:", embed: embed);
                 signups.SpamBansHistoryMessage = sentMessage.Id;
             }
         }
